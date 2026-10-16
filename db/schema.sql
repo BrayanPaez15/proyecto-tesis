@@ -1,7 +1,12 @@
 -- Esquema de la base de datos "directorio" (SIRAD)
 -- Solo estructura (sin datos), generado con mysqldump --no-data
+-- 14 tablas y 23 llaves foraneas (verificado contra un volcado de la base en uso, 2026-10-16).
+-- Los contadores AUTO_INCREMENT se omiten a proposito: dependen de los datos, no de la estructura.
+-- ATENCION: este script ejecuta DROP TABLE IF EXISTS sobre cada tabla. Si ya existe una base
+-- "directorio" con informacion, haga un respaldo antes de importarlo (php db/backup.php).
 CREATE DATABASE IF NOT EXISTS `directorio` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `directorio`;
+
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -30,8 +35,12 @@ CREATE TABLE `artistas` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_artistas_creado_por` (`creado_por`),
+  KEY `fk_artistas_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_artistas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_artistas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `asocajas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -49,8 +58,12 @@ CREATE TABLE `asocajas` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_asocajas_creado_por` (`creado_por`),
+  KEY `fk_asocajas_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_asocajas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_asocajas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `directivos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -74,8 +87,12 @@ CREATE TABLE `directivos` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_directivos_creado_por` (`creado_por`),
+  KEY `fk_directivos_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_directivos_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_directivos_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `editoriales`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -93,8 +110,12 @@ CREATE TABLE `editoriales` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_editoriales_creado_por` (`creado_por`),
+  KEY `fk_editoriales_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_editoriales_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_editoriales_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `etiquetas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -127,8 +148,12 @@ CREATE TABLE `instituciones_e` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_instituciones_e_creado_por` (`creado_por`),
+  KEY `fk_instituciones_e_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_instituciones_e_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_instituciones_e_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `medios`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -147,8 +172,12 @@ CREATE TABLE `medios` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_medios_creado_por` (`creado_por`),
+  KEY `fk_medios_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_medios_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_medios_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `mercadeo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -169,8 +198,12 @@ CREATE TABLE `mercadeo` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_mercadeo_creado_por` (`creado_por`),
+  KEY `fk_mercadeo_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_mercadeo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_mercadeo_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `practicantes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -192,8 +225,12 @@ CREATE TABLE `practicantes` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_practicantes_creado_por` (`creado_por`),
+  KEY `fk_practicantes_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_practicantes_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_practicantes_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `proveedores`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -209,8 +246,12 @@ CREATE TABLE `proveedores` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_proveedores_creado_por` (`creado_por`),
+  KEY `fk_proveedores_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_proveedores_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_proveedores_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `registro_etiquetas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -240,8 +281,12 @@ CREATE TABLE `talleristas` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_talleristas_creado_por` (`creado_por`),
+  KEY `fk_talleristas_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_talleristas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_talleristas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `team_pombo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -262,8 +307,12 @@ CREATE TABLE `team_pombo` (
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  PRIMARY KEY (`id`),
+  KEY `fk_team_pombo_creado_por` (`creado_por`),
+  KEY `fk_team_pombo_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_team_pombo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_team_pombo_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `usuarios`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -281,7 +330,7 @@ CREATE TABLE `usuarios` (
   `respuesta_seguridad_hash` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `correo` (`correo`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
