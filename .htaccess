@@ -9,11 +9,16 @@ ServerSignature Off
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # El repositorio Git no se sirve
+    # El repositorio Git no se sirve (y tampoco la copia anidada proyecto-tesis/, una version antigua sin las protecciones actuales)
     RewriteRule (^|/)\.git(/|$) - [R=404,L]
     # Esquema, respaldos, migraciones, registros de errores y archivos compartidos: solo internos
-    RewriteRule ^(db|logs|includes)(/|$) - [F,L]
+    RewriteRule ^(db|logs|includes|proyecto-tesis)(/|$) - [F,L]
 </IfModule>
+
+# Solo GET, POST y HEAD (TRACE reflejaria la peticion con sus cookies; la aplicacion no usa otros metodos)
+<LimitExcept GET POST HEAD>
+    Require all denied
+</LimitExcept>
 
 # Archivos que no deben descargarse
 <FilesMatch "(^\.|\.(sql|log|md|bak|ini|bat|ps1|sh|drawio)$)">
@@ -21,6 +26,6 @@ ServerSignature Off
 </FilesMatch>
 
 # Configuracion y guardas: se usan solo con require desde otros scripts
-<FilesMatch "^(config|conexion|auth)\.php$">
+<FilesMatch "^(config|config\.local|conexion|auth)\.php$">
     Require all denied
 </FilesMatch>

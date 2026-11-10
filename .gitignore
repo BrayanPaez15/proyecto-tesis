@@ -1,3 +1,5 @@
 .claude/
 logs/*.log
 db/backups/*.sql
+config.local.php
+logs/correos/

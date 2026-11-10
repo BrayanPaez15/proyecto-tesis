@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/duplicados.php";
 require_permiso('practicantes', 'registrar');
 
 $editando = null;
@@ -30,20 +31,31 @@ $error = "";
 if ($_POST) {
   csrf_verify();
   $usuarioId = (int) $_SESSION['usuario_id'];
+  normalizar_unicos();
 
-  if (!empty($_POST['id'])) {
+  $esEdicion = !empty($_POST['id']);
+  if ($esEdicion) {
     require_admin();
     $id = (int) $_POST['id'];
-    $stmt = $conn->prepare("UPDATE practicantes SET nombre = ?, telefono = ?, correo = ?, direccion = ?, disciplina = ?, generacion = ?, inicio = ?, fin = ?, cumple = ?, contacto = ?, telefono_contacto = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
-    $stmt->bind_param("sssssssssssii", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['direccion'], $_POST['disciplina'], $_POST['generacion'], $_POST['inicio'], $_POST['fin'], $_POST['cumple'], $_POST['contacto'], $_POST['telefono_contacto'], $usuarioId, $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: practicantes_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
-    exit;
+    $error = error_duplicado($conn, 'practicantes', $id);
+    if ($error === '') {
+      $stmt = $conn->prepare("UPDATE practicantes SET nombre = ?, telefono = ?, correo = ?, direccion = ?, disciplina = ?, generacion = ?, inicio = ?, fin = ?, cumple = ?, contacto = ?, telefono_contacto = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
+      $stmt->bind_param("sssssssssssii", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['direccion'], $_POST['disciplina'], $_POST['generacion'], $_POST['inicio'], $_POST['fin'], $_POST['cumple'], $_POST['contacto'], $_POST['telefono_contacto'], $usuarioId, $id);
+      try {
+        $stmt->execute();
+        $stmt->close();
+        header("Location: practicantes_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
+        exit;
+      } catch (mysqli_sql_exception $e) {
+        $error = mensaje_duplicado($e) ?? throw $e;
+      }
+    }
   }
 
   $correo = trim($_POST['correo'] ?? '');
-  if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+  if ($esEdicion) {
+    // la edicion ya se resolvio arriba; si hubo un error se vuelve a mostrar el formulario
+  } elseif ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
     $error = "El correo no tiene un formato válido.";
   } elseif ($correo !== '') {
     $check = $conn->prepare("SELECT id FROM practicantes WHERE correo = ?");
@@ -56,13 +68,21 @@ if ($_POST) {
     $check->close();
   }
 
-  if ($error === '') {
+  if (!$esEdicion && $error === '') {
+    $error = error_duplicado($conn, 'practicantes');
+  }
+
+  if (!$esEdicion && $error === '') {
     $stmt = $conn->prepare("INSERT INTO practicantes (nombre, telefono, correo, direccion, disciplina, generacion, inicio, fin, cumple, contacto, telefono_contacto, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssssssssssi", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['direccion'], $_POST['disciplina'], $_POST['generacion'], $_POST['inicio'], $_POST['fin'], $_POST['cumple'], $_POST['contacto'], $_POST['telefono_contacto'], $usuarioId);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: " . (puede_modulo('practicantes', 'ver') ? 'practicantes_registros.php' : 'practicantes.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
-    exit;
+    try {
+      $stmt->execute();
+      $stmt->close();
+      header("Location: " . (puede_modulo('practicantes', 'ver') ? 'practicantes_registros.php' : 'practicantes.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+      exit;
+    } catch (mysqli_sql_exception $e) {
+      $error = mensaje_duplicado($e) ?? throw $e;
+    }
   }
 }
 ?>

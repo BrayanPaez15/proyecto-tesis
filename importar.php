@@ -1,11 +1,11 @@
 <?php
 /**
- * Importacion masiva desde CSV.
+ * Importacion masiva desde Excel (.xlsx) o CSV.
  *
- * Permite elegir un modulo y subir un CSV cuyo encabezado coincida con
+ * Permite elegir un modulo y subir un archivo cuyo encabezado coincida con
  * las etiquetas de sus campos (ver includes/modulos.php); cada fila se
- * inserta con sentencia preparada, omitiendo filas vacias y correos
- * duplicados. Incluye plantillas descargables por modulo. Requiere
+ * inserta con sentencia preparada, omitiendo filas vacias y registros
+ * duplicados (correo, NIT o cedula ya registrados). Incluye plantillas descargables por modulo. Requiere
  * sesion activa (auth.php) y permiso de importacion: administradores y
  * los usuarios a quienes un administrador se lo asigno (usuarios.php), que
  * ademas solo pueden importar a los modulos donde tienen permiso de registrar.
@@ -14,19 +14,27 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/duplicados.php";
+require_once "includes/importacion.php";
+require_once "includes/xlsx.php";
 require_importar();
 
 $modulos = modulos_permitidos(require "includes/modulos.php", 'registrar');
 
-if (isset($_GET['plantilla']) && isset($modulos[$_GET['plantilla']])) {
+if (isset($_GET['plantilla']) && is_string($_GET['plantilla']) && isset($modulos[$_GET['plantilla']])) {
     $m = $modulos[$_GET['plantilla']];
-    header("Content-Type: text/csv; charset=utf-8");
-    header("Content-Disposition: attachment; filename=\"plantilla_{$_GET['plantilla']}.csv\"");
-    echo "\xEF\xBB\xBF";
-    echo implode(",", array_map(
-        fn($l) => '"' . str_replace('"', '""', $l) . '"',
-        array_values($m['columnas'])
-    )) . "\r\n";
+    $titulos = array_values($m['columnas']);
+    if (($_GET['formato'] ?? '') === 'csv') {
+        // Excel en espanol separa las columnas con punto y coma; la linea «sep=;» se lo indica
+        header("Content-Type: text/csv; charset=utf-8");
+        header("Content-Disposition: attachment; filename=\"plantilla_{$_GET['plantilla']}.csv\"");
+        echo "\xEF\xBB\xBF" . "sep=;\r\n";
+        echo implode(";", array_map(fn($l) => '"' . str_replace('"', '""', $l) . '"', $titulos)) . "\r\n";
+        exit;
+    }
+    header("Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    header("Content-Disposition: attachment; filename=\"plantilla_{$_GET['plantilla']}.xlsx\"");
+    echo xlsx_crear($titulos, [], $m['titulo']);
     exit;
 }
 
@@ -40,7 +48,7 @@ if ($_POST && isset($_POST['importar'])) {
     if (!isset($modulos[$moduloSel])) {
         $error = "Selecciona un módulo válido.";
     } elseif (empty($_FILES['archivo']['tmp_name']) || $_FILES['archivo']['error'] !== UPLOAD_ERR_OK) {
-        $error = "Selecciona un archivo CSV.";
+        $error = "Selecciona un archivo de Excel (.xlsx) o CSV.";
     } else {
         $m = $modulos[$moduloSel];
         $columnas = $m['columnas'];
@@ -49,13 +57,21 @@ if ($_POST && isset($_POST['importar'])) {
             $labelToKey[mb_strtolower($etiqueta)] = $clave;
         }
 
-        $handle = fopen($_FILES['archivo']['tmp_name'], 'r');
-        $encabezado = $handle ? fgetcsv($handle) : false;
+        $encabezado = false;
+        $filasArchivo = null;
+        try {
+            $filasArchivo = filas_importacion($_FILES['archivo']['tmp_name'], (string) ($_FILES['archivo']['name'] ?? ''));
+            $encabezado = $filasArchivo->valid() ? $filasArchivo->current() : false;
+            $filasArchivo->next();
+        } catch (RuntimeException $e) {
+            $error = $e->getMessage();
+        }
 
-        if ($encabezado === false) {
+        if ($error !== '') {
+            // ya se informo el problema del archivo
+        } elseif ($encabezado === false) {
             $error = "El archivo está vacío o no se pudo leer.";
         } else {
-            $encabezado[0] = preg_replace('/^\xEF\xBB\xBF/', '', $encabezado[0]);
             $mapaColumnas = [];
             foreach ($encabezado as $indice => $titulo) {
                 $clave = $labelToKey[mb_strtolower(trim($titulo))] ?? null;
@@ -74,14 +90,17 @@ if ($_POST && isset($_POST['importar'])) {
                     "INSERT INTO `{$m['tabla']}` ($columnasSql, creado_por) VALUES ($placeholders, ?)"
                 );
 
-                $tieneCorreo = in_array('correo', $columnasDestino, true);
-                $checkCorreo = $tieneCorreo
-                    ? $conn->prepare("SELECT id FROM `{$m['tabla']}` WHERE correo = ?")
-                    : null;
+                $unicas = array_values(array_intersect(columnas_unicas($m['tabla']), $columnasDestino));
+                $checks = [];
+                foreach ($unicas as $u) {
+                    $checks[$u] = $conn->prepare("SELECT id FROM `{$m['tabla']}` WHERE `$u` = ? LIMIT 1");
+                }
 
                 $importados = 0;
                 $omitidos = 0;
-                while (($fila = fgetcsv($handle)) !== false) {
+                while ($filasArchivo->valid()) {
+                    $fila = $filasArchivo->current();
+                    $filasArchivo->next();
                     $noVacia = array_filter($fila, fn($v) => trim((string) $v) !== '');
                     if (count($noVacia) === 0) {
                         continue;
@@ -93,31 +112,43 @@ if ($_POST && isset($_POST['importar'])) {
                         $valores[$clave] = $indiceOrigen !== false ? trim((string) ($fila[$indiceOrigen] ?? '')) : '';
                     }
 
-                    if ($tieneCorreo && $valores['correo'] !== '') {
-                        $checkCorreo->execute([$valores['correo']]);
-                        $existe = $checkCorreo->get_result()->num_rows > 0;
-                        if ($existe) {
-                            $omitidos++;
-                            continue;
+                    $duplicado = false;
+                    foreach ($unicas as $u) {
+                        if ($valores[$u] === '') {
+                            $valores[$u] = null;
+                        } else {
+                            $checks[$u]->execute([$valores[$u]]);
+                            if ($checks[$u]->get_result()->num_rows > 0) {
+                                $duplicado = true;
+                                break;
+                            }
                         }
+                    }
+                    if ($duplicado) {
+                        $omitidos++;
+                        continue;
                     }
 
                     $params = array_values($valores);
                     $params[] = (int) $_SESSION['usuario_id'];
-                    $stmt->execute($params);
-                    $importados++;
+                    try {
+                        $stmt->execute($params);
+                        $importados++;
+                    } catch (mysqli_sql_exception $e) {
+                        if (mensaje_duplicado($e) === null) {
+                            throw $e;
+                        }
+                        $omitidos++;
+                    }
                 }
 
                 $stmt->close();
-                if ($checkCorreo) {
-                    $checkCorreo->close();
+                foreach ($checks as $chk) {
+                    $chk->close();
                 }
 
                 $resumen = ['importados' => $importados, 'omitidos' => $omitidos];
             }
-        }
-        if ($handle) {
-            fclose($handle);
         }
     }
 }
@@ -137,7 +168,7 @@ if ($_POST && isset($_POST['importar'])) {
   <?php render_header(true); ?>
 
   <main>
-    <h1>Importar registros desde CSV</h1>
+    <h1>Importar registros desde Excel o CSV</h1>
 
     <?php if ($error): ?>
       <p class="auth-error" style="margin-bottom: 16px;"><?= htmlspecialchars($error) ?></p>
@@ -146,7 +177,7 @@ if ($_POST && isset($_POST['importar'])) {
     <?php if ($resumen): ?>
       <p class="auth-success" style="margin-bottom: 16px;">
         Importación completada: <?= (int) $resumen['importados'] ?> registro(s) importado(s),
-        <?= (int) $resumen['omitidos'] ?> omitido(s) por correo duplicado.
+        <?= (int) $resumen['omitidos'] ?> omitido(s) por duplicado (correo, NIT o cédula ya registrados).
       </p>
     <?php endif; ?>
 
@@ -160,7 +191,7 @@ if ($_POST && isset($_POST['importar'])) {
           <?php endforeach; ?>
         </select>
       </label>
-      <label>Archivo CSV<input type="file" name="archivo" accept=".csv" required></label>
+      <label>Archivo de Excel (.xlsx) o CSV<input type="file" name="archivo" accept=".xlsx,.csv" required></label>
       <button type="submit" name="importar" value="1">Importar</button>
     </form>
 
@@ -173,7 +204,7 @@ if ($_POST && isset($_POST['importar'])) {
         <?php foreach ($modulos as $clave => $m): ?>
           <tr>
             <td><?= htmlspecialchars($m['titulo']) ?></td>
-            <td><a href="importar.php?plantilla=<?= urlencode($clave) ?>" class="btn-edit">Descargar plantilla</a></td>
+            <td><a href="importar.php?plantilla=<?= urlencode($clave) ?>" class="btn-edit">Descargar plantilla (Excel)</a></td>
           </tr>
         <?php endforeach; ?>
       </table>

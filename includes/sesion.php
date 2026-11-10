@@ -33,9 +33,28 @@ function sin_cache(): void
     }
 }
 
+/**
+ * Rechaza (400) las peticiones que mandan un arreglo (campo[]=...) donde la aplicacion espera
+ * texto. Solo se admiten arreglos en las casillas de etiquetas, de la matriz de permisos (ver/registrar) y de la agenda.
+ * Sin esto, un parametro como q[]=x llegaria a funciones que esperan texto y daria un error 500.
+ */
+function rechazar_parametros_anomalos(): void
+{
+    $permitidos = ['etiquetas', 'ver', 'registrar', 'agenda_dia', 'agenda_desde', 'agenda_hasta', 'agenda_tipo', 'agenda_nota'];
+    foreach ([$_GET, $_POST] as $parametros) {
+        foreach ($parametros as $nombre => $valor) {
+            if (is_array($valor) && !in_array($nombre, $permitidos, true)) {
+                http_response_code(400);
+                exit('Solicitud no válida.');
+            }
+        }
+    }
+}
+
 function iniciar_sesion_segura(): void
 {
     cabeceras_seguridad();
+    rechazar_parametros_anomalos();
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');

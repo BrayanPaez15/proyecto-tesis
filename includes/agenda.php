@@ -61,11 +61,15 @@ function agenda_obtener(mysqli $conn, string $modulo, int $id): array
     return agenda_decodificar($fila['disponibilidad'] ?? null);
 }
 
-/** Devuelve [registro_id => filas] de todo un modulo, para listarlo sin una consulta por fila. */
-function agenda_por_registro(mysqli $conn, string $modulo): array
+/** Devuelve [registro_id => filas] del modulo (solo los ids dados, si se indican), para listarlo sin una consulta por fila. */
+function agenda_por_registro(mysqli $conn, string $modulo, ?array $ids = null): array
 {
+    if ($ids !== null && !$ids) {
+        return [];
+    }
     $tabla = agenda_tabla($modulo);
-    $res = $conn->query("SELECT id, disponibilidad FROM `$tabla` WHERE disponibilidad IS NOT NULL");
+    $filtro = $ids !== null ? ' AND id IN (' . implode(',', array_map('intval', $ids)) . ')' : '';
+    $res = $conn->query("SELECT id, disponibilidad FROM `$tabla` WHERE disponibilidad IS NOT NULL$filtro");
     $mapa = [];
     while ($f = $res->fetch_assoc()) {
         $filas = agenda_decodificar($f['disponibilidad']);

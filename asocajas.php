@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/duplicados.php";
 require_permiso('asocajas', 'registrar');
 
 $editando = null;
@@ -30,20 +31,31 @@ $error = "";
 if ($_POST) {
   csrf_verify();
   $usuarioId = (int) $_SESSION['usuario_id'];
+  normalizar_unicos();
 
-  if (!empty($_POST['id'])) {
+  $esEdicion = !empty($_POST['id']);
+  if ($esEdicion) {
     require_admin();
     $id = (int) $_POST['id'];
-    $stmt = $conn->prepare("UPDATE asocajas SET caja = ?, departamento = ?, cargo = ?, contacto = ?, telefono = ?, direccion = ?, correo = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
-    $stmt->bind_param("sssssssii", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId, $id);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: asocajas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
-    exit;
+    $error = error_duplicado($conn, 'asocajas', $id);
+    if ($error === '') {
+      $stmt = $conn->prepare("UPDATE asocajas SET caja = ?, departamento = ?, cargo = ?, contacto = ?, telefono = ?, direccion = ?, correo = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
+      $stmt->bind_param("sssssssii", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId, $id);
+      try {
+        $stmt->execute();
+        $stmt->close();
+        header("Location: asocajas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
+        exit;
+      } catch (mysqli_sql_exception $e) {
+        $error = mensaje_duplicado($e) ?? throw $e;
+      }
+    }
   }
 
   $correo = trim($_POST['correo'] ?? '');
-  if ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+  if ($esEdicion) {
+    // la edicion ya se resolvio arriba; si hubo un error se vuelve a mostrar el formulario
+  } elseif ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
     $error = "El correo no tiene un formato válido.";
   } elseif ($correo !== '') {
     $check = $conn->prepare("SELECT id FROM asocajas WHERE correo = ?");
@@ -56,13 +68,21 @@ if ($_POST) {
     $check->close();
   }
 
-  if ($error === '') {
+  if (!$esEdicion && $error === '') {
+    $error = error_duplicado($conn, 'asocajas');
+  }
+
+  if (!$esEdicion && $error === '') {
     $stmt = $conn->prepare("INSERT INTO asocajas (caja, departamento, cargo, contacto, telefono, direccion, correo, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssssssi", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: " . (puede_modulo('asocajas', 'ver') ? 'asocajas_registros.php' : 'asocajas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
-    exit;
+    try {
+      $stmt->execute();
+      $stmt->close();
+      header("Location: " . (puede_modulo('asocajas', 'ver') ? 'asocajas_registros.php' : 'asocajas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+      exit;
+    } catch (mysqli_sql_exception $e) {
+      $error = mensaje_duplicado($e) ?? throw $e;
+    }
   }
 }
 ?>

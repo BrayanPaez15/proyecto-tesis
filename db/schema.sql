@@ -4,6 +4,10 @@
 -- El 2026-11-11 se agregaron columnas, sin tablas nuevas: en `usuarios` (estado de la cuenta, politica aceptada,
 -- permiso de importacion, permisos por modulo en JSON, ultimo acceso, ultimo intento sin aprobar y marca de lectura
 -- de alertas) y la columna `disponibilidad` (agenda en JSON) en `artistas` y `talleristas`; ver db/migraciones/.
+-- El 2026-11-12 se agregaron en usuarios las columnas reset_token_hash, reset_expira y reset_enviado_en
+-- (recuperacion de contrasena por correo; db/migraciones/2026-11-12_recuperacion_por_correo.sql).
+-- El 2026-11-12 se agregaron llaves UNIQUE (correo en los once modulos, NIT en instituciones_e y editoriales,
+-- cedula en directivos) para impedir registros duplicados; db/migraciones/2026-11-12_unicidad.sql.
 -- Los contadores AUTO_INCREMENT se omiten a proposito: dependen de los datos, no de la estructura.
 -- ATENCION: este script ejecuta DROP TABLE IF EXISTS sobre cada tabla. Si ya existe una base
 -- "directorio" con informacion, haga un respaldo antes de importarlo (php db/backup.php).
@@ -40,6 +44,7 @@ CREATE TABLE `artistas` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_artistas_correo` (`correo`),
   KEY `fk_artistas_creado_por` (`creado_por`),
   KEY `fk_artistas_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_artistas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -63,6 +68,7 @@ CREATE TABLE `asocajas` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_asocajas_correo` (`correo`),
   KEY `fk_asocajas_creado_por` (`creado_por`),
   KEY `fk_asocajas_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_asocajas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -92,6 +98,8 @@ CREATE TABLE `directivos` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_directivos_correo` (`correo`),
+  UNIQUE KEY `uq_directivos_cedula` (`cedula`),
   KEY `fk_directivos_creado_por` (`creado_por`),
   KEY `fk_directivos_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_directivos_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -115,6 +123,8 @@ CREATE TABLE `editoriales` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_editoriales_correo` (`correo`),
+  UNIQUE KEY `uq_editoriales_nit` (`nit`),
   KEY `fk_editoriales_creado_por` (`creado_por`),
   KEY `fk_editoriales_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_editoriales_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -153,6 +163,8 @@ CREATE TABLE `instituciones_e` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_instituciones_e_correo` (`correo`),
+  UNIQUE KEY `uq_instituciones_e_nit` (`nit`),
   KEY `fk_instituciones_e_creado_por` (`creado_por`),
   KEY `fk_instituciones_e_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_instituciones_e_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -177,6 +189,7 @@ CREATE TABLE `medios` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_medios_correo` (`correo`),
   KEY `fk_medios_creado_por` (`creado_por`),
   KEY `fk_medios_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_medios_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -203,6 +216,7 @@ CREATE TABLE `mercadeo` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_mercadeo_correo` (`correo`),
   KEY `fk_mercadeo_creado_por` (`creado_por`),
   KEY `fk_mercadeo_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_mercadeo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -230,6 +244,7 @@ CREATE TABLE `practicantes` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_practicantes_correo` (`correo`),
   KEY `fk_practicantes_creado_por` (`creado_por`),
   KEY `fk_practicantes_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_practicantes_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -251,6 +266,7 @@ CREATE TABLE `proveedores` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_proveedores_correo` (`correo`),
   KEY `fk_proveedores_creado_por` (`creado_por`),
   KEY `fk_proveedores_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_proveedores_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -287,6 +303,7 @@ CREATE TABLE `talleristas` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_talleristas_correo` (`correo`),
   KEY `fk_talleristas_creado_por` (`creado_por`),
   KEY `fk_talleristas_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_talleristas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -313,6 +330,7 @@ CREATE TABLE `team_pombo` (
   `actualizado_en` timestamp NULL DEFAULT NULL,
   `actualizado_por` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_team_pombo_correo` (`correo`),
   KEY `fk_team_pombo_creado_por` (`creado_por`),
   KEY `fk_team_pombo_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_team_pombo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
@@ -341,8 +359,12 @@ CREATE TABLE `usuarios` (
   `ultimo_acceso` datetime DEFAULT NULL,
   `ultimo_intento_pendiente` datetime DEFAULT NULL,
   `alertas_vistas_hasta` datetime DEFAULT NULL,
+  `reset_token_hash` char(64) DEFAULT NULL,
+  `reset_expira` datetime DEFAULT NULL,
+  `reset_enviado_en` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `correo` (`correo`)
+  UNIQUE KEY `correo` (`correo`),
+  KEY `idx_usuarios_reset_token` (`reset_token_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

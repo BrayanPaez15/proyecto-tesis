@@ -18,6 +18,7 @@ sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
 require_once "includes/politica.php";
+require_once "includes/password.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -44,8 +45,8 @@ if ($_POST) {
         $error = "Todos los campos son obligatorios.";
     } elseif (!in_array($pregunta, $preguntas, true)) {
         $error = "Selecciona una pregunta de seguridad válida.";
-    } elseif (strlen($password) < 6) {
-        $error = "La contraseña debe tener al menos 6 caracteres.";
+    } elseif (($error = validar_password($password, $correo)) !== '') {
+        // $error ya tiene el mensaje
     } elseif (empty($_POST['acepta_politica'])) {
         $error = "Debes aceptar la política de tratamiento de datos personales para crear la cuenta.";
     } else {
@@ -88,6 +89,7 @@ if ($_POST) {
     <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
   <script src="js/mensajes.js" defer></script>
+  <script src="js/password.js" defer></script>
 </head>
 
 <body>
@@ -104,7 +106,8 @@ if ($_POST) {
             <?php csrf_field(); ?>
             <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>"></label>
             <label>Correo<input type="email" name="correo" required value="<?= htmlspecialchars($_POST['correo'] ?? '') ?>"></label>
-            <label>Contraseña<input type="password" name="password" required minlength="6"></label>
+            <label>Contraseña<input type="password" name="password" required minlength="8" maxlength="64" autocomplete="new-password" data-pw></label>
+            <?php render_requisitos_password(); ?>
             <label>Pregunta de seguridad
                 <select name="pregunta" required>
                     <option value="">Selecciona una pregunta...</option>

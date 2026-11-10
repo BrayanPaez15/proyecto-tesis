@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/duplicados.php";
 require_permiso('talleristas', 'registrar');
 require_once "includes/agenda.php";
 
@@ -32,22 +33,27 @@ $error = "";
 if ($_POST) {
   csrf_verify();
   $usuarioId = (int) $_SESSION['usuario_id'];
+  normalizar_unicos();
 
   $esEdicion = !empty($_POST['id']);
   if ($esEdicion) {
     require_admin();
     $id = (int) $_POST['id'];
     [$agendaFilas, $errorAgenda] = agenda_leer_post();
-    if ($errorAgenda === '') {
+    $error = $errorAgenda !== '' ? $errorAgenda : error_duplicado($conn, 'talleristas', $id);
+    if ($error === '') {
       $stmt = $conn->prepare("UPDATE talleristas SET nombre = ?, telefono = ?, correo = ?, cargo = ?, perfil = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
       $stmt->bind_param("sssssii", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['cargo'], $_POST['perfil'], $usuarioId, $id);
-      $stmt->execute();
-      $stmt->close();
-      agenda_guardar($conn, 'talleristas', $id, $agendaFilas, $usuarioId);
-      header("Location: talleristas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
-      exit;
+      try {
+        $stmt->execute();
+        $stmt->close();
+        agenda_guardar($conn, 'talleristas', $id, $agendaFilas, $usuarioId);
+        header("Location: talleristas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
+        exit;
+      } catch (mysqli_sql_exception $e) {
+        $error = mensaje_duplicado($e) ?? throw $e;
+      }
     }
-    $error = $errorAgenda;
   }
 
   $correo = trim($_POST['correo'] ?? '');
@@ -70,15 +76,21 @@ if ($_POST) {
     [$agendaFilas, $errorAgenda] = agenda_leer_post();
     if ($errorAgenda !== '') {
       $error = $errorAgenda;
+    } elseif (($error = error_duplicado($conn, 'talleristas')) !== '') {
+      // se muestra el error y se conserva lo escrito
     } else {
       $stmt = $conn->prepare("INSERT INTO talleristas (nombre, telefono, correo, cargo, perfil, creado_por) VALUES (?, ?, ?, ?, ?, ?)");
       $stmt->bind_param("sssssi", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['cargo'], $_POST['perfil'], $usuarioId);
-      $stmt->execute();
-      $nuevoId = $conn->insert_id;
-      $stmt->close();
-      agenda_guardar($conn, 'talleristas', $nuevoId, $agendaFilas, $usuarioId);
-      header("Location: " . (puede_modulo('talleristas', 'ver') ? 'talleristas_registros.php' : 'talleristas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
-      exit;
+      try {
+        $stmt->execute();
+        $nuevoId = $conn->insert_id;
+        $stmt->close();
+        agenda_guardar($conn, 'talleristas', $nuevoId, $agendaFilas, $usuarioId);
+        header("Location: " . (puede_modulo('talleristas', 'ver') ? 'talleristas_registros.php' : 'talleristas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+        exit;
+      } catch (mysqli_sql_exception $e) {
+        $error = mensaje_duplicado($e) ?? throw $e;
+      }
     }
   }
 }

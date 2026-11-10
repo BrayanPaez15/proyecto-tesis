@@ -6,13 +6,14 @@
  * tabla HTML, con la salida escapada (htmlspecialchars). Los botones
  * de editar/eliminar solo se muestran a administradores (require_admin
  * protege tambien el borrado del lado del servidor). Incluye busqueda
- * y paginacion client-side (js/table-tools.js) y notificaciones toast
+ * y paginacion en el servidor (includes/paginacion.php: 50 filas por pagina) y notificaciones toast
  * (js/toast.js). Requiere sesion activa (auth.php).
  */
 require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/paginacion.php";
 require_permiso('team', 'ver');
 require_once "includes/etiquetas.php";
 
@@ -29,7 +30,10 @@ if (isset($_POST['eliminar_id'])) {
 }
 
 $esAdmin = is_admin();
-$etiquetasPorRegistro = etiquetas_por_registro($conn, 'team');
+$q = termino_busqueda();
+[$filas, $total, $pagina, $paginas] = consulta_paginada($conn, 'team', $q, pagina_solicitada());
+$idsPagina = array_column($filas, 'id');
+$etiquetasPorRegistro = etiquetas_por_registro($conn, 'team', $idsPagina);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -40,7 +44,6 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'team');
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
   <script src="js/toast.js" defer></script>
-  <script src="js/table-tools.js" defer></script>
 </head>
 
 <body>
@@ -52,15 +55,13 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'team');
 
     <?php render_page_actions('team', 'registros'); ?>
 
-    <?php
-    $r = $conn->query("SELECT * FROM team_pombo");
-    if ($r->num_rows === 0):
-    ?>
+    <?php if ($total === 0 && $q === ''): ?>
       <p class="empty-state">Aún no hay registros en este módulo.</p>
     <?php else: ?>
-      <div class="search-bar">
-        <input type="text" placeholder="Buscar en la tabla...">
-      </div>
+      <?php render_busqueda_servidor($q, $total); ?>
+      <?php if ($total === 0): ?>
+        <p class="empty-state">No se encontraron registros para «<?= htmlspecialchars($q) ?>».</p>
+      <?php endif; ?>
 
       <div class="table-card">
         <table>
@@ -79,7 +80,7 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'team');
             <?php if ($esAdmin): ?><th>Acciones</th><?php endif; ?>
           </tr>
           <?php
-          while ($f = $r->fetch_assoc()) {
+          foreach ($filas as $f) {
             echo "<tr>"
               . "<td>" . htmlspecialchars($f['nombre']) . "</td>"
               . "<td>" . htmlspecialchars($f['apellido']) . "</td>"
@@ -111,7 +112,7 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'team');
           ?>
         </table>
       </div>
-      <div class="pagination"></div>
+      <?php render_paginacion($pagina, $paginas, $total, $q); ?>
     <?php endif; ?>
   </main>
 

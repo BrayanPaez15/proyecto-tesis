@@ -17,6 +17,7 @@ require_once "includes/layout.php";
 require_once "includes/csrf.php";
 require_once "includes/permisos.php";
 require_once "includes/alertas.php";
+require_once "includes/password.php";
 require_admin();
 
 $modulos = require "includes/modulos.php";
@@ -112,8 +113,8 @@ if ($_POST) {
         }
     } elseif (isset($_POST['restablecer_password'])) {
         $nueva = $_POST['password_nueva'] ?? '';
-        if (strlen($nueva) < 6) {
-            $error = "La nueva contraseña debe tener al menos 6 caracteres.";
+        if (($error = validar_password($nueva, $usuario['correo'])) !== '') {
+            // $error ya tiene el mensaje
         } else {
             $hash = password_hash($nueva, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
@@ -145,6 +146,7 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
   <script src="js/toast.js" defer></script>
+  <script src="js/password.js" defer></script>
 </head>
 
 <body>
@@ -235,7 +237,8 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
       <form method="POST">
         <?php csrf_field(); ?>
         <input type="hidden" name="id" value="<?= (int) $usuario['id'] ?>">
-        <label>Nueva contraseña<input type="password" name="password_nueva" minlength="6" required></label>
+        <label>Nueva contraseña<input type="password" name="password_nueva" minlength="8" maxlength="64" required autocomplete="new-password" data-pw></label>
+        <?php render_requisitos_password(); ?>
         <button type="submit" name="restablecer_password" value="1">Restablecer contraseña</button>
       </form>
     </div>

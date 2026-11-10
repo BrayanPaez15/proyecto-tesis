@@ -744,3 +744,51 @@ tbody tr:hover td {
 .card a.ver-registros:hover {
     background: #e0e7ff;
 }
+
+/* Paginacion y busqueda en el servidor (includes/paginacion.php) */
+.pagination a,
+.pagination span.actual {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1f2937;
+    text-decoration: none;
+}
+
+.pagination a:hover {
+    background: #f4f6fb;
+    border-color: #2563eb;
+}
+
+.pagination span.actual {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+.pagination .info {
+    margin-left: 10px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.search-count {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* Requisitos y nivel de seguridad de la contrasena */
+.pw-meter { margin: -4px 0 8px; }
+.pw-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+.pw-bar span { display: block; height: 100%; width: 0; background: #dc2626; transition: width .2s, background .2s; }
+.pw-bar span.media { background: #d97706; }
+.pw-bar span.fuerte { background: #16a34a; }
+.pw-level { margin: 4px 0 0; font-size: 0.8rem; color: #555; }
+.pw-rules { position: fixed; z-index: 2000; list-style: none; margin: 0; padding: 10px 14px; max-width: 320px; font-size: 0.8rem; color: #444; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); pointer-events: none; }
+.pw-rules::before { content: "La contraseña debe tener:"; display: block; font-weight: 600; margin-bottom: 4px; color: #222; }
+.pw-rules li { padding-left: 20px; position: relative; margin: 2px 0; }
+.pw-rules li::before { content: "\25CB"; position: absolute; left: 2px; color: #9ca3af; }
+.pw-rules li.ok { color: #166534; }
+.pw-rules li.ok::before { content: "\2713"; color: #16a34a; }
