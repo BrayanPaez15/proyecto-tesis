@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('directivos', 'registrar');
 
 $editando = null;
 if (isset($_GET['id'])) {

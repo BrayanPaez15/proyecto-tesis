@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('instituciones-e', 'ver');
 require_once "includes/etiquetas.php";
 
 if (isset($_POST['eliminar_id'])) {
@@ -94,7 +95,10 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'instituciones-e');
               . "<td>" . htmlspecialchars($f['ciudad']) . "</td>";
             echo "<td>";
             render_tags($etiquetasPorRegistro[(int) $f['id']] ?? []);
-            echo "<a href=\"etiqueta_asignar.php?modulo=instituciones-e&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a></td>";
+            if (puede_modulo('instituciones-e', 'registrar')) {
+              echo "<a href=\"etiqueta_asignar.php?modulo=instituciones-e&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a>";
+            }
+            echo "</td>";
             if ($esAdmin) {
               echo "<td>"
                 . "<a href=\"instituciones-e.php?id=" . (int) $f['id'] . "\" class=\"btn-edit\">Editar</a>"

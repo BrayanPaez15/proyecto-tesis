@@ -13,7 +13,9 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('talleristas', 'ver');
 require_once "includes/etiquetas.php";
+require_once "includes/agenda.php";
 
 if (isset($_POST['eliminar_id'])) {
     csrf_verify();
@@ -23,12 +25,14 @@ if (isset($_POST['eliminar_id'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
+    agenda_eliminar($conn, 'talleristas', $id);
     header("Location: talleristas_registros.php?msg=" . rawurlencode("Registro eliminado") . "&tipo=success");
     exit;
 }
 
 $esAdmin = is_admin();
 $etiquetasPorRegistro = etiquetas_por_registro($conn, 'talleristas');
+$agendaPorRegistro = agenda_por_registro($conn, 'talleristas');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -69,6 +73,7 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'talleristas');
             <th>Correo</th>
             <th>Cargo</th>
             <th>Perfil</th>
+            <th>Disponibilidad</th>
             <th>Etiquetas</th>
             <?php if ($esAdmin): ?><th>Acciones</th><?php endif; ?>
           </tr>
@@ -80,9 +85,13 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'talleristas');
               . "<td>" . htmlspecialchars($f['correo']) . "</td>"
               . "<td>" . htmlspecialchars($f['cargo']) . "</td>"
               . "<td>" . htmlspecialchars($f['perfil']) . "</td>";
+            echo "<td>" . htmlspecialchars(agenda_resumen($agendaPorRegistro[(int) $f['id']] ?? [])) . "</td>";
             echo "<td>";
             render_tags($etiquetasPorRegistro[(int) $f['id']] ?? []);
-            echo "<a href=\"etiqueta_asignar.php?modulo=talleristas&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a></td>";
+            if (puede_modulo('talleristas', 'registrar')) {
+              echo "<a href=\"etiqueta_asignar.php?modulo=talleristas&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a>";
+            }
+            echo "</td>";
             if ($esAdmin) {
               echo "<td>"
                 . "<a href=\"talleristas.php?id=" . (int) $f['id'] . "\" class=\"btn-edit\">Editar</a>"

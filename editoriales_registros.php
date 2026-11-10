@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('editoriales', 'ver');
 require_once "includes/etiquetas.php";
 
 if (isset($_POST['eliminar_id'])) {
@@ -86,7 +87,10 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'editoriales');
               . "<td>" . htmlspecialchars($f['descuento']) . "</td>";
             echo "<td>";
             render_tags($etiquetasPorRegistro[(int) $f['id']] ?? []);
-            echo "<a href=\"etiqueta_asignar.php?modulo=editoriales&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a></td>";
+            if (puede_modulo('editoriales', 'registrar')) {
+              echo "<a href=\"etiqueta_asignar.php?modulo=editoriales&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a>";
+            }
+            echo "</td>";
             if ($esAdmin) {
               echo "<td>"
                 . "<a href=\"editoriales.php?id=" . (int) $f['id'] . "\" class=\"btn-edit\">Editar</a>"

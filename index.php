@@ -3,9 +3,10 @@
  * Panel principal de SIRAD.
  *
  * Pagina de entrada del sistema tras iniciar sesion: muestra una
- * tarjeta de acceso por cada uno de los once modulos del directorio,
- * con la cantidad de registros de cada uno. Requiere sesion activa
- * (auth.php).
+ * tarjeta de acceso por cada modulo del directorio sobre el que el
+ * usuario tiene permiso (todos, si es administrador), con la cantidad de
+ * registros de cada uno; sin permisos no muestra ninguno. Requiere sesion
+ * activa (auth.php).
  */
 require "auth.php";
 include "conexion.php";
@@ -201,10 +202,19 @@ function contar(mysqli $conn, string $tabla): int
     <?php render_header(false); ?>
 
     <h1>SIRAD</h1>
+    <?php if (is_admin() && ($alertasSinLeer = alertas_pendientes($conn)) > 0): ?>
+        <p class="pending-notice" style="max-width: 1260px; margin: 0 auto 20px;">Tienes <?= $alertasSinLeer ?> alerta<?= $alertasSinLeer === 1 ? '' : 's' ?> sin leer (cuentas nuevas e inicios de sesión). <a href="alertas.php">Ver alertas</a></p>
+    <?php endif; ?>
+
+    <?php if (!tiene_algun_permiso()): ?>
+        <p class="subtitle">Tu cuenta está aprobada, pero todavía no tiene permisos asignados. Pídele a un administrador que te dé acceso a los módulos que necesites.</p>
+    <?php else: ?>
     <p class="subtitle">Selecciona un módulo para registrar o consultar información institucional</p>
+    <?php endif; ?>
 
     <div class="container">
 
+        <?php if (puede_modulo('instituciones-e', 'alguna')): ?>
         <div class="card">
             <div class="icon">🏫</div>
             <h3>Instituciones Educativas</h3>
@@ -212,7 +222,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Universidades, colegios y jardines vinculados</p>
             <a href="instituciones-e.php" class="blue">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('practicantes', 'alguna')): ?>
         <div class="card">
             <div class="icon">🎓</div>
             <h3>Practicantes</h3>
@@ -220,7 +232,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Estudiantes en práctica académica</p>
             <a href="practicantes.php" class="green">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('artistas', 'alguna')): ?>
         <div class="card">
             <div class="icon">🎨</div>
             <h3>Artistas</h3>
@@ -228,7 +242,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Ilustradores, escritores y creadores</p>
             <a href="artistas.php" class="orange">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('talleristas', 'alguna')): ?>
         <div class="card">
             <div class="icon">🧑‍🏫</div>
             <h3>Talleristas</h3>
@@ -236,7 +252,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Facilitadores y formadores</p>
             <a href="talleristas.php" class="purple">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('editoriales', 'alguna')): ?>
         <div class="card">
             <div class="icon">📚</div>
             <h3>Editoriales</h3>
@@ -244,7 +262,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Editoriales aliadas</p>
             <a href="editoriales.php" class="pink">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('asocajas', 'alguna')): ?>
         <div class="card">
             <div class="icon">🤝</div>
             <h3>Asocajas</h3>
@@ -252,7 +272,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Cajas de compensación</p>
             <a href="asocajas.php" class="gray">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('mercadeo', 'alguna')): ?>
         <div class="card">
             <div class="icon">📢</div>
             <h3>Mercadeo</h3>
@@ -260,7 +282,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Empresas y patrocinios</p>
             <a href="mercadeo.php" class="blue">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('proveedores', 'alguna')): ?>
         <div class="card">
             <div class="icon">🚚</div>
             <h3>Proveedores</h3>
@@ -268,7 +292,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Proveedores nacionales e internacionales</p>
             <a href="proveedores.php" class="green">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('medios', 'alguna')): ?>
         <div class="card">
             <div class="icon">📰</div>
             <h3>Medios</h3>
@@ -276,7 +302,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Prensa, radio y medios digitales</p>
             <a href="medios.php" class="orange">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('team', 'alguna')): ?>
         <div class="card">
             <div class="icon">👥</div>
             <h3>Team</h3>
@@ -284,7 +312,9 @@ function contar(mysqli $conn, string $tabla): int
             <p>Equipo interno de la fundación</p>
             <a href="team.php" class="purple">Ingresar</a>
         </div>
+        <?php endif; ?>
 
+        <?php if (puede_modulo('directivos', 'alguna')): ?>
         <div class="card">
             <div class="icon">🏛️</div>
             <h3>Directivos</h3>
@@ -292,6 +322,7 @@ function contar(mysqli $conn, string $tabla): int
             <p>Miembros directivos y vigencias</p>
             <a href="directivos.php" class="red">Ingresar</a>
         </div>
+        <?php endif; ?>
 
     </div>
 

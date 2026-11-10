@@ -613,3 +613,106 @@ tbody tr:hover td {
     font-weight: 700;
     color: #1f2937;
 }
+
+/* Aprobacion de cuentas, politica de datos y agenda de disponibilidad */
+.pill-pending {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.pending-notice {
+    background: #fef3c7;
+    color: #b45309;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 16px;
+}
+
+.form-card label.check-label {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    font-weight: normal;
+    grid-column: 1 / -1;
+}
+
+.form-card label.check-label input {
+    width: auto;
+    margin-top: 3px;
+}
+
+.politica {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 16px;
+    line-height: 1.6;
+}
+
+.politica h2 {
+    font-size: 17px;
+    margin: 22px 0 6px;
+}
+
+.agenda-box {
+    grid-column: 1 / -1;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0;
+}
+
+.agenda-box legend {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    padding: 0 6px;
+}
+
+.agenda-help {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.agenda-row {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 0.9fr 1fr 2fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.form-card .agenda-box button {
+    grid-column: auto;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.form-card .agenda-box button.agenda-quitar {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 8px 12px;
+}
+
+.form-card .agenda-box button.agenda-quitar:hover {
+    background: #fecaca;
+}
+
+@media (max-width: 720px) {
+    .agenda-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.badge-count {
+    display: inline-block;
+    min-width: 18px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}

@@ -4,14 +4,17 @@
  *
  * Busca un termino en el campo principal (nombre o equivalente) de las
  * once tablas del directorio, usando includes/modulos.php, y enlaza
- * cada resultado a su modulo de "Ver registros". Requiere sesion
- * activa (auth.php).
+ * cada resultado a su modulo de "Ver registros". Solo busca en los
+ * modulos que el usuario puede ver. Requiere sesion activa (auth.php).
  */
 require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 
-$modulos = require "includes/modulos.php";
+$modulos = modulos_permitidos(require "includes/modulos.php", 'ver');
+if (!$modulos) {
+    acceso_denegado('No tienes permiso para ver registros de ningún módulo. Pídele a un administrador que te lo asigne.');
+}
 $termino = trim($_GET['q'] ?? '');
 $resultados = [];
 
@@ -53,7 +56,7 @@ if ($termino !== '') {
     <h1>Búsqueda global</h1>
 
     <form class="search-bar" method="GET">
-      <input type="text" name="q" placeholder="Buscar en los once módulos..." value="<?= htmlspecialchars($termino) ?>">
+      <input type="text" name="q" placeholder="Buscar en los módulos a los que tienes acceso..." value="<?= htmlspecialchars($termino) ?>">
       <button type="submit">Buscar</button>
     </form>
 

@@ -6,14 +6,17 @@
  * las etiquetas de sus campos (ver includes/modulos.php); cada fila se
  * inserta con sentencia preparada, omitiendo filas vacias y correos
  * duplicados. Incluye plantillas descargables por modulo. Requiere
- * sesion activa (auth.php).
+ * sesion activa (auth.php) y permiso de importacion: administradores y
+ * los usuarios a quienes un administrador se lo asigno (usuarios.php), que
+ * ademas solo pueden importar a los modulos donde tienen permiso de registrar.
  */
 require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_importar();
 
-$modulos = require "includes/modulos.php";
+$modulos = modulos_permitidos(require "includes/modulos.php", 'registrar');
 
 if (isset($_GET['plantilla']) && isset($modulos[$_GET['plantilla']])) {
     $m = $modulos[$_GET['plantilla']];

@@ -13,7 +13,9 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('artistas', 'ver');
 require_once "includes/etiquetas.php";
+require_once "includes/agenda.php";
 
 if (isset($_POST['eliminar_id'])) {
     csrf_verify();
@@ -23,12 +25,14 @@ if (isset($_POST['eliminar_id'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
+    agenda_eliminar($conn, 'artistas', $id);
     header("Location: artistas_registros.php?msg=" . rawurlencode("Registro eliminado") . "&tipo=success");
     exit;
 }
 
 $esAdmin = is_admin();
 $etiquetasPorRegistro = etiquetas_por_registro($conn, 'artistas');
+$agendaPorRegistro = agenda_por_registro($conn, 'artistas');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -67,10 +71,11 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'artistas');
             <th>Nombre</th>
             <th>Perfil</th>
             <th>Organización</th>
-            <th>Agenda</th>
+            <th>Agenda (notas)</th>
             <th>Teléfono</th>
             <th>Correo</th>
             <th>Filbo</th>
+            <th>Disponibilidad</th>
             <th>Etiquetas</th>
             <?php if ($esAdmin): ?><th>Acciones</th><?php endif; ?>
           </tr>
@@ -84,9 +89,13 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'artistas');
               . "<td>" . htmlspecialchars($f['telefono']) . "</td>"
               . "<td>" . htmlspecialchars($f['correo']) . "</td>"
               . "<td>" . htmlspecialchars($f['filbo']) . "</td>";
+            echo "<td>" . htmlspecialchars(agenda_resumen($agendaPorRegistro[(int) $f['id']] ?? [])) . "</td>";
             echo "<td>";
             render_tags($etiquetasPorRegistro[(int) $f['id']] ?? []);
-            echo "<a href=\"etiqueta_asignar.php?modulo=artistas&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a></td>";
+            if (puede_modulo('artistas', 'registrar')) {
+              echo "<a href=\"etiqueta_asignar.php?modulo=artistas&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a>";
+            }
+            echo "</td>";
             if ($esAdmin) {
               echo "<td>"
                 . "<a href=\"artistas.php?id=" . (int) $f['id'] . "\" class=\"btn-edit\">Editar</a>"

@@ -13,6 +13,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_permiso('practicantes', 'ver');
 require_once "includes/etiquetas.php";
 
 if (isset($_POST['eliminar_id'])) {
@@ -94,7 +95,10 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'practicantes');
               . "<td>" . htmlspecialchars($f['telefono_contacto']) . "</td>";
             echo "<td>";
             render_tags($etiquetasPorRegistro[(int) $f['id']] ?? []);
-            echo "<a href=\"etiqueta_asignar.php?modulo=practicantes&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a></td>";
+            if (puede_modulo('practicantes', 'registrar')) {
+              echo "<a href=\"etiqueta_asignar.php?modulo=practicantes&id=" . (int) $f['id'] . "\" class=\"btn-edit\">Etiquetas</a>";
+            }
+            echo "</td>";
             if ($esAdmin) {
               echo "<td>"
                 . "<a href=\"practicantes.php?id=" . (int) $f['id'] . "\" class=\"btn-edit\">Editar</a>"

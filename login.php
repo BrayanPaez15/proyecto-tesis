@@ -5,12 +5,17 @@
  * Verifica las credenciales del usuario contra la tabla `usuarios`
  * mediante sentencia preparada y password_verify() (nunca se compara
  * la contrasena en texto plano). Bloquea la cuenta 15 minutos tras 5
- * intentos fallidos consecutivos. Si son validas, crea la sesion
- * (incluyendo el rol) y redirige a index.php.
+ * intentos fallidos consecutivos. Si las credenciales son validas pero la
+ * cuenta esta pendiente o rechazada, informa el estado y no inicia sesion.
+ * Si la cuenta esta aprobada, crea la sesion (incluyendo el rol y el permiso
+ * de importacion) y redirige a index.php. Cuando entra un usuario no
+ * administrador, o intenta entrar uno sin aprobar, se registra una alerta
+ * para los administradores (alertas.php).
  */
 session_start();
 include "conexion.php";
 require_once "includes/csrf.php";
+require_once "includes/alertas.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -23,7 +28,7 @@ if ($_POST) {
     $correo = $_POST['correo'];
     $password = $_POST['password'];
 
-    $stmt = $conn->prepare("SELECT id, nombre, password, rol, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE correo = ?");
+    $stmt = $conn->prepare("SELECT id, nombre, password, rol, estado, puede_importar, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE correo = ?");
     $stmt->bind_param("s", $correo);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -33,6 +38,11 @@ if ($_POST) {
     if ($user && $bloqueadoHasta && strtotime($bloqueadoHasta) > time()) {
         $minutos = (int) ceil((strtotime($bloqueadoHasta) - time()) / 60);
         $error = "Cuenta bloqueada temporalmente por varios intentos fallidos. Intenta de nuevo en $minutos minuto(s).";
+    } elseif ($user && password_verify($password, $user['password']) && $user['estado'] !== 'aprobado') {
+        $error = $user['estado'] === 'pendiente'
+            ? "Tu cuenta está pendiente de aprobación. Un administrador debe aprobarla antes de que puedas iniciar sesión."
+            : "Tu solicitud de acceso fue rechazada. Comunícate con un administrador.";
+        alerta_registrar_una_vez($conn, 'intento_pendiente', (int) $user['id'], "{$user['nombre']} ($correo) intentó iniciar sesión, pero su cuenta está " . ($user['estado'] === 'pendiente' ? 'pendiente de aprobación.' : 'rechazada.'));
     } elseif ($user && password_verify($password, $user['password'])) {
         $reset = $conn->prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
         $reset->bind_param("i", $user['id']);
@@ -42,6 +52,10 @@ if ($_POST) {
         $_SESSION['usuario_id'] = $user['id'];
         $_SESSION['usuario_nombre'] = $user['nombre'];
         $_SESSION['usuario_rol'] = $user['rol'];
+        $_SESSION['usuario_puede_importar'] = (int) $user['puede_importar'];
+        if ($user['rol'] !== 'admin') {
+            alerta_registrar($conn, 'inicio_sesion', (int) $user['id'], "{$user['nombre']} ($correo) inició sesión.");
+        }
         header("Location: index.php");
         exit;
     } else {
@@ -80,7 +94,9 @@ if ($_POST) {
             <?php if ($error): ?>
                 <p class="auth-error"><?= htmlspecialchars($error) ?></p>
             <?php endif; ?>
-            <?php if (isset($_GET['registrado'])): ?>
+            <?php if (($_GET['registrado'] ?? '') === 'pendiente'): ?>
+                <p class="auth-success">Solicitud enviada. Un administrador debe aprobar tu cuenta antes de que puedas iniciar sesión.</p>
+            <?php elseif (isset($_GET['registrado'])): ?>
                 <p class="auth-success">Cuenta creada. Ya puedes iniciar sesión.</p>
             <?php endif; ?>
             <?php if (isset($_GET['restablecido'])): ?>

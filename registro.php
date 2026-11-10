@@ -5,13 +5,18 @@
  * Crea una cuenta nueva en la tabla `usuarios`, validando campos
  * obligatorios, longitud minima de contrasena y correo duplicado. La
  * contrasena y la respuesta de seguridad se guardan encriptadas con
- * password_hash() (bcrypt). El primer usuario que se registra en el
- * sistema queda automaticamente como administrador; los siguientes se
- * crean con rol de usuario normal.
+ * password_hash() (bcrypt). Exige aceptar la politica de tratamiento de
+ * datos (se guarda la version y la fecha). El primer usuario que se
+ * registra en el sistema queda automaticamente como administrador y
+ * aprobado; los siguientes se crean con rol de usuario y estado
+ * pendiente: no pueden iniciar sesion hasta que un administrador los
+ * apruebe (usuarios.php), y el administrador recibe una alerta (alertas.php).
  */
 session_start();
 include "conexion.php";
 require_once "includes/csrf.php";
+require_once "includes/politica.php";
+require_once "includes/alertas.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -40,6 +45,8 @@ if ($_POST) {
         $error = "Selecciona una pregunta de seguridad válida.";
     } elseif (strlen($password) < 6) {
         $error = "La contraseña debe tener al menos 6 caracteres.";
+    } elseif (empty($_POST['acepta_politica'])) {
+        $error = "Debes aceptar la política de tratamiento de datos personales para crear la cuenta.";
     } else {
         $check = $conn->prepare("SELECT id FROM usuarios WHERE correo = ?");
         $check->bind_param("s", $correo);
@@ -56,13 +63,20 @@ if ($_POST) {
         $respuestaHash = password_hash(mb_strtolower($respuesta), PASSWORD_DEFAULT);
 
         $totalUsuarios = $conn->query("SELECT COUNT(*) AS total FROM usuarios")->fetch_assoc()['total'];
-        $rol = ((int) $totalUsuarios === 0) ? 'admin' : 'usuario';
+        $esPrimero = ((int) $totalUsuarios === 0);
+        $rol = $esPrimero ? 'admin' : 'usuario';
+        $estado = $esPrimero ? 'aprobado' : 'pendiente';
+        $version = POLITICA_VERSION;
 
-        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, pregunta_seguridad, respuesta_seguridad_hash) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $nombre, $correo, $hash, $rol, $pregunta, $respuestaHash);
+        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, estado, pregunta_seguridad, respuesta_seguridad_hash, politica_version, politica_aceptada_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->bind_param("ssssssss", $nombre, $correo, $hash, $rol, $estado, $pregunta, $respuestaHash, $version);
         $stmt->execute();
+        $nuevoId = $conn->insert_id;
         $stmt->close();
-        header("Location: login.php?registrado=1");
+        if (!$esPrimero) {
+            alerta_registrar($conn, 'registro', $nuevoId, "Nueva cuenta creada: $nombre ($correo). Pendiente de aprobación.");
+        }
+        header("Location: login.php?registrado=" . ($esPrimero ? "1" : "pendiente"));
         exit;
     }
 }
@@ -102,7 +116,9 @@ if ($_POST) {
             </label>
             <label>Respuesta<input name="respuesta" required></label>
             <p class="auth-subtitle">La pregunta de seguridad sirve para recuperar tu contraseña si la olvidas.</p>
-            <button>Crear cuenta</button>
+            <label class="check-label"><input type="checkbox" name="acepta_politica" value="1" required <?= !empty($_POST['acepta_politica']) ? 'checked' : '' ?>><span>He leído y acepto la <a href="politica.php" target="_blank" rel="noopener">política de tratamiento de datos personales</a> (versión <?= htmlspecialchars(POLITICA_VERSION) ?>).</span></label>
+            <p class="auth-subtitle">Tu cuenta quedará pendiente hasta que un administrador la apruebe.</p>
+            <button>Solicitar cuenta</button>
             <p class="auth-link">¿Ya tienes cuenta? <a href="login.php">Iniciar sesión</a></p>
         </form>
     </div>

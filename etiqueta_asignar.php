@@ -5,8 +5,8 @@
  * Muestra el catalogo de etiquetas como casillas de verificacion para
  * marcar/desmarcar cuales aplican al registro (modulo + id) indicado,
  * usando includes/modulos.php como lista blanca de modulos validos.
- * Abierto a cualquier usuario autenticado (auth.php), igual que
- * registrar y consultar.
+ * Requiere sesion activa (auth.php) y permiso de registrar en el modulo
+ * (los administradores tienen todos).
  */
 require "auth.php";
 include "conexion.php";
@@ -23,6 +23,7 @@ if (!isset($modulos[$modulo]) || $id <= 0) {
 }
 
 $info = $modulos[$modulo];
+require_permiso($modulo, 'registrar');
 $tabla = $info['tabla'];
 $campoNombre = $info['campo_busqueda'];
 $archivoRegistros = "{$info['archivo']}_registros.php";
