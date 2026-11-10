@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssssi", $_POST['nombre'], $_POST['nit'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $_POST['descuento'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: editoriales_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('editoriales', 'ver') ? 'editoriales_registros.php' : 'editoriales.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Editoriales - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

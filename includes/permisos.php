@@ -95,3 +95,16 @@ function permisos_guardar(mysqli $conn, int $usuarioId, array $modulosValidos, a
     $ins->close();
     $conn->commit();
 }
+
+function puede_registrar_alguno(): bool
+{
+    if (is_admin()) {
+        return true;
+    }
+    foreach ($_SESSION['usuario_permisos'] ?? [] as $p) {
+        if (!empty($p['registrar'])) {
+            return true;
+        }
+    }
+    return false;
+}

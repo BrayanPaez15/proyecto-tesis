@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssssssssssi", $_POST['titulo'], $_POST['nombre'], $_POST['apellido'], $_POST['cedula'], $_POST['calidad'], $_POST['estado'], $_POST['entidad'], $_POST['cargo'], $_POST['celular'], $_POST['telefono'], $_POST['correo'], $_POST['integrante'], $_POST['vigencia'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: directivos_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('directivos', 'ver') ? 'directivos_registros.php' : 'directivos.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Directivos - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

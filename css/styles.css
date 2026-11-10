@@ -732,3 +732,15 @@ tbody tr:hover td {
 .table-card td.acciones .btn-delete {
     margin: 2px 4px 2px 0;
 }
+
+/* Panel principal: segundo boton «Ver registros» debajo de «Ingresar» */
+.card a.ver-registros {
+    margin-top: 10px;
+    background: #eef2ff;
+    color: #1f2937;
+    border: 1px solid #c7d2fe;
+}
+
+.card a.ver-registros:hover {
+    background: #e0e7ff;
+}

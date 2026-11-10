@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("ssssssssi", $_POST['categoria'], $_POST['medio'], $_POST['fuente'], $_POST['nombre'], $_POST['correo'], $_POST['telefono'], $_POST['telefono2'], $_POST['direccion'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: medios_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('medios', 'ver') ? 'medios_registros.php' : 'medios.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Medios - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

@@ -77,7 +77,7 @@ if ($_POST) {
       $nuevoId = $conn->insert_id;
       $stmt->close();
       agenda_guardar($conn, 'talleristas', $nuevoId, $agendaFilas, $usuarioId);
-      header("Location: talleristas_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+      header("Location: " . (puede_modulo('talleristas', 'ver') ? 'talleristas_registros.php' : 'talleristas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
       exit;
     }
   }
@@ -92,6 +92,7 @@ $valores = ($error !== '' && $_POST) ? $_POST : ($editando ?? []);
   <title>Talleristas - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

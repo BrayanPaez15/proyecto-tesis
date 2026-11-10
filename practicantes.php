@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssssssssi", $_POST['nombre'], $_POST['telefono'], $_POST['correo'], $_POST['direccion'], $_POST['disciplina'], $_POST['generacion'], $_POST['inicio'], $_POST['fin'], $_POST['cumple'], $_POST['contacto'], $_POST['telefono_contacto'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: practicantes_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('practicantes', 'ver') ? 'practicantes_registros.php' : 'practicantes.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Practicantes - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

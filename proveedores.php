@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssi", $_POST['pais'], $_POST['nombre'], $_POST['direccion'], $_POST['telefono'], $_POST['correo'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: proveedores_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('proveedores', 'ver') ? 'proveedores_registros.php' : 'proveedores.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Proveedores - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssssssssi", $_POST['clase'], $_POST['nombre'], $_POST['nit'], $_POST['calidad'], $_POST['jornada'], $_POST['contacto'], $_POST['cargo'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $_POST['ciudad'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: instituciones-e_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('instituciones-e', 'ver') ? 'instituciones-e_registros.php' : 'instituciones-e.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Instituciones Educativas - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

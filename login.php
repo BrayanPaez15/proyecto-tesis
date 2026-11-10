@@ -95,7 +95,7 @@ if ($_POST) {
                 <p class="auth-error"><?= htmlspecialchars($error) ?></p>
             <?php endif; ?>
             <?php if (($_GET['registrado'] ?? '') === 'pendiente'): ?>
-                <p class="auth-success">Solicitud enviada. Un administrador debe aprobar tu cuenta antes de que puedas iniciar sesión.</p>
+                <p class="auth-success"><strong>Solicitud enviada.</strong> Tu cuenta requiere la aprobación de un administrador. Cuando la apruebe podrás iniciar sesión con tu correo y contraseña; si no la aprueba, no tendrás acceso al sistema.</p>
             <?php elseif (isset($_GET['registrado'])): ?>
                 <p class="auth-success">Cuenta creada. Ya puedes iniciar sesión.</p>
             <?php endif; ?>

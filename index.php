@@ -12,6 +12,24 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 
+/**
+ * Botones de la tarjeta de un modulo segun los permisos: «Ingresar» (formulario de registro) si el
+ * usuario puede registrar, y «Ver registros» (consulta) si puede ver. Quien solo puede ver tiene
+ * unicamente «Ver registros»; quien puede registrar y ver (y el administrador) tiene «Ingresar» y,
+ * debajo, «Ver registros».
+ */
+function tarjeta_enlaces(string $modulo, string $color): void
+{
+    $registrar = puede_modulo($modulo, 'registrar');
+    $ver = puede_modulo($modulo, 'ver');
+    if ($registrar) {
+        echo '<a href="' . htmlspecialchars($modulo) . '.php" class="' . $color . '">Ingresar</a>';
+    }
+    if ($ver) {
+        echo '<a href="' . htmlspecialchars($modulo) . '_registros.php" class="' . ($registrar ? 'ver-registros' : $color) . '">Ver registros</a>';
+    }
+}
+
 function contar(mysqli $conn, string $tabla): int
 {
     $resultado = $conn->query("SELECT COUNT(*) AS total FROM `$tabla`");
@@ -202,6 +220,10 @@ function contar(mysqli $conn, string $tabla): int
     <?php render_header(false); ?>
 
     <h1>SIRAD</h1>
+    <?php if (is_admin() && ($solicitudesPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total']) > 0): ?>
+        <p class="pending-notice" style="max-width: 1260px; margin: 0 auto 20px;"><?= $solicitudesPendientes ?> solicitud<?= $solicitudesPendientes === 1 ? '' : 'es' ?> de cuenta pendiente<?= $solicitudesPendientes === 1 ? '' : 's' ?> de tu aprobación. <a href="usuarios.php">Aprobar o rechazar</a></p>
+    <?php endif; ?>
+
     <?php if (is_admin() && ($alertasSinLeer = alertas_pendientes($conn)) > 0): ?>
         <p class="pending-notice" style="max-width: 1260px; margin: 0 auto 20px;">Tienes <?= $alertasSinLeer ?> alerta<?= $alertasSinLeer === 1 ? '' : 's' ?> sin leer (cuentas nuevas e inicios de sesión). <a href="alertas.php">Ver alertas</a></p>
     <?php endif; ?>
@@ -209,7 +231,7 @@ function contar(mysqli $conn, string $tabla): int
     <?php if (!tiene_algun_permiso()): ?>
         <p class="subtitle">Tu cuenta está aprobada, pero todavía no tiene permisos asignados. Pídele a un administrador que te dé acceso a los módulos que necesites.</p>
     <?php else: ?>
-    <p class="subtitle">Selecciona un módulo para registrar o consultar información institucional</p>
+    <p class="subtitle"><?= puede_registrar_alguno() ? 'Selecciona un módulo para registrar o consultar información institucional' : 'Selecciona un módulo para consultar información institucional' ?></p>
     <?php endif; ?>
 
     <div class="container">
@@ -220,7 +242,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Instituciones Educativas</h3>
             <span class="stat"><?= contar($conn, 'instituciones_e') ?> registros</span>
             <p>Universidades, colegios y jardines vinculados</p>
-            <a href="instituciones-e.php" class="blue">Ingresar</a>
+            <?php tarjeta_enlaces('instituciones-e', 'blue'); ?>
         </div>
         <?php endif; ?>
 
@@ -230,7 +252,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Practicantes</h3>
             <span class="stat"><?= contar($conn, 'practicantes') ?> registros</span>
             <p>Estudiantes en práctica académica</p>
-            <a href="practicantes.php" class="green">Ingresar</a>
+            <?php tarjeta_enlaces('practicantes', 'green'); ?>
         </div>
         <?php endif; ?>
 
@@ -240,7 +262,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Artistas</h3>
             <span class="stat"><?= contar($conn, 'artistas') ?> registros</span>
             <p>Ilustradores, escritores y creadores</p>
-            <a href="artistas.php" class="orange">Ingresar</a>
+            <?php tarjeta_enlaces('artistas', 'orange'); ?>
         </div>
         <?php endif; ?>
 
@@ -250,7 +272,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Talleristas</h3>
             <span class="stat"><?= contar($conn, 'talleristas') ?> registros</span>
             <p>Facilitadores y formadores</p>
-            <a href="talleristas.php" class="purple">Ingresar</a>
+            <?php tarjeta_enlaces('talleristas', 'purple'); ?>
         </div>
         <?php endif; ?>
 
@@ -260,7 +282,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Editoriales</h3>
             <span class="stat"><?= contar($conn, 'editoriales') ?> registros</span>
             <p>Editoriales aliadas</p>
-            <a href="editoriales.php" class="pink">Ingresar</a>
+            <?php tarjeta_enlaces('editoriales', 'pink'); ?>
         </div>
         <?php endif; ?>
 
@@ -270,7 +292,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Asocajas</h3>
             <span class="stat"><?= contar($conn, 'asocajas') ?> registros</span>
             <p>Cajas de compensación</p>
-            <a href="asocajas.php" class="gray">Ingresar</a>
+            <?php tarjeta_enlaces('asocajas', 'gray'); ?>
         </div>
         <?php endif; ?>
 
@@ -280,7 +302,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Mercadeo</h3>
             <span class="stat"><?= contar($conn, 'mercadeo') ?> registros</span>
             <p>Empresas y patrocinios</p>
-            <a href="mercadeo.php" class="blue">Ingresar</a>
+            <?php tarjeta_enlaces('mercadeo', 'blue'); ?>
         </div>
         <?php endif; ?>
 
@@ -290,7 +312,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Proveedores</h3>
             <span class="stat"><?= contar($conn, 'proveedores') ?> registros</span>
             <p>Proveedores nacionales e internacionales</p>
-            <a href="proveedores.php" class="green">Ingresar</a>
+            <?php tarjeta_enlaces('proveedores', 'green'); ?>
         </div>
         <?php endif; ?>
 
@@ -300,7 +322,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Medios</h3>
             <span class="stat"><?= contar($conn, 'medios') ?> registros</span>
             <p>Prensa, radio y medios digitales</p>
-            <a href="medios.php" class="orange">Ingresar</a>
+            <?php tarjeta_enlaces('medios', 'orange'); ?>
         </div>
         <?php endif; ?>
 
@@ -310,7 +332,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Team</h3>
             <span class="stat"><?= contar($conn, 'team_pombo') ?> registros</span>
             <p>Equipo interno de la fundación</p>
-            <a href="team.php" class="purple">Ingresar</a>
+            <?php tarjeta_enlaces('team', 'purple'); ?>
         </div>
         <?php endif; ?>
 
@@ -320,7 +342,7 @@ function contar(mysqli $conn, string $tabla): int
             <h3>Directivos</h3>
             <span class="stat"><?= contar($conn, 'directivos') ?> registros</span>
             <p>Miembros directivos y vigencias</p>
-            <a href="directivos.php" class="red">Ingresar</a>
+            <?php tarjeta_enlaces('directivos', 'red'); ?>
         </div>
         <?php endif; ?>
 

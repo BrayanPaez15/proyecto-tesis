@@ -4,7 +4,8 @@
  *
  * Lista las cuentas creadas, los inicios de sesion de usuarios y los
  * intentos de acceso con cuentas sin aprobar, con las no leidas primero.
- * Permite marcar una alerta o todas como leidas. Solo accesible para
+ * Para las cuentas pendientes permite aprobarlas o rechazarlas desde la
+ * misma alerta. Permite marcar una alerta o todas como leidas. Solo accesible para
  * administradores. Requiere sesion activa (auth.php).
  */
 require "auth.php";
@@ -84,6 +85,14 @@ $sinLeer = alertas_pendientes($conn);
               <td><span class="pill <?= (int) $a['leida'] === 0 ? 'pill-pending' : '' ?>"><?= htmlspecialchars($tipos[$a['tipo']] ?? $a['tipo']) ?></span></td>
               <td class="detalle"><?= htmlspecialchars($a['detalle']) ?></td>
               <td class="acciones">
+                <?php if ($a['usuario_id'] && $a['estado'] === 'pendiente'): ?>
+                  <form method="POST" action="usuarios.php" style="display:inline">
+                    <?php csrf_field(); ?>
+                    <input type="hidden" name="usuario_id" value="<?= (int) $a['usuario_id'] ?>">
+                    <button type="submit" name="cambiar_estado" value="aprobado" class="btn-edit">Aprobar</button>
+                    <button type="submit" name="cambiar_estado" value="rechazado" class="btn-delete">Rechazar</button>
+                  </form>
+                <?php endif; ?>
                 <?php if ($a['usuario_id']): ?>
                   <a href="usuario_editar.php?id=<?= (int) $a['usuario_id'] ?>" class="btn-edit"><?= $a['estado'] === 'pendiente' ? 'Revisar solicitud' : 'Ver usuario' ?></a>
                 <?php endif; ?>

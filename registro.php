@@ -117,7 +117,7 @@ if ($_POST) {
             <label>Respuesta<input name="respuesta" required></label>
             <p class="auth-subtitle">La pregunta de seguridad sirve para recuperar tu contraseña si la olvidas.</p>
             <label class="check-label"><input type="checkbox" name="acepta_politica" value="1" required <?= !empty($_POST['acepta_politica']) ? 'checked' : '' ?>><span>He leído y acepto la <a href="politica.php" target="_blank" rel="noopener">política de tratamiento de datos personales</a> (versión <?= htmlspecialchars(POLITICA_VERSION) ?>).</span></label>
-            <p class="auth-subtitle">Tu cuenta quedará pendiente hasta que un administrador la apruebe.</p>
+            <p class="pending-notice">Tu cuenta requiere la aprobación de un administrador antes de que puedas iniciar sesión.</p>
             <button>Solicitar cuenta</button>
             <p class="auth-link">¿Ya tienes cuenta? <a href="login.php">Iniciar sesión</a></p>
         </form>

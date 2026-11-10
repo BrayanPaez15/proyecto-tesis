@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("ssssssssssi", $_POST['nombre'], $_POST['apellido'], $_POST['celular'], $_POST['correo'], $_POST['cargo'], $_POST['cumple'], $_POST['contacto'], $_POST['telefono'], $_POST['inicio'], $_POST['fin'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: team_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('team', 'ver') ? 'team_registros.php' : 'team.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Team - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

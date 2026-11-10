@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("sssssssi", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: asocajas_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('asocajas', 'ver') ? 'asocajas_registros.php' : 'asocajas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Asocajas - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

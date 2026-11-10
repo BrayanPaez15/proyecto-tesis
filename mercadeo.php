@@ -61,7 +61,7 @@ if ($_POST) {
     $stmt->bind_param("ssssssssssi", $_POST['empresa'], $_POST['nombre'], $_POST['cargo'], $_POST['tema'], $_POST['contacto'], $_POST['telefono'], $_POST['correo'], $_POST['direccion'], $_POST['proyecto'], $_POST['patrocinio'], $usuarioId);
     $stmt->execute();
     $stmt->close();
-    header("Location: mercadeo_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+    header("Location: " . (puede_modulo('mercadeo', 'ver') ? 'mercadeo_registros.php' : 'mercadeo.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
     exit;
   }
 }
@@ -74,6 +74,7 @@ if ($_POST) {
   <title>Mercadeo - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>

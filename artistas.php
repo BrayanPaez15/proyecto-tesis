@@ -77,7 +77,7 @@ if ($_POST) {
       $nuevoId = $conn->insert_id;
       $stmt->close();
       agenda_guardar($conn, 'artistas', $nuevoId, $agendaFilas, $usuarioId);
-      header("Location: artistas_registros.php?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
+      header("Location: " . (puede_modulo('artistas', 'ver') ? 'artistas_registros.php' : 'artistas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
       exit;
     }
   }
@@ -92,6 +92,7 @@ $valores = ($error !== '' && $_POST) ? $_POST : ($editando ?? []);
   <title>Artistas - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/toast.js" defer></script>
 </head>
 
 <body>
