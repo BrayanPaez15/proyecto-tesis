@@ -8,9 +8,12 @@
  * aprobada, cierra la sesion; y refresca el rol y el permiso de
  * importacion y los permisos por modulo, de modo que un cambio del
  * administrador rige de inmediato. Se incluye al inicio de index.php y de los once modulos
- * del directorio para proteger el acceso.
+ * del directorio para proteger el acceso. Usa la sesion segura (cookie HttpOnly y
+ * SameSite, cabeceras de seguridad) y evita que el navegador guarde las paginas.
  */
-session_start();
+require_once __DIR__ . '/includes/sesion.php';
+iniciar_sesion_segura();
+sin_cache();
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: login.php");
     exit;

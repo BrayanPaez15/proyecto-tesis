@@ -6,9 +6,13 @@
  * ingresa su correo y, si existe, se le muestra su pregunta de
  * seguridad; (2) responde la pregunta y define una nueva contrasena,
  * verificada con password_verify() contra el hash de la respuesta
- * guardado al registrarse.
+ * guardado al registrarse. Cada respuesta incorrecta cuenta como un intento
+ * fallido de la cuenta: a los 5 la cuenta se bloquea 15 minutos (el mismo bloqueo
+ * del inicio de sesion), para impedir adivinar la respuesta por fuerza bruta.
  */
-session_start();
+require_once __DIR__ . '/includes/sesion.php';
+iniciar_sesion_segura();
+sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
 
@@ -29,7 +33,7 @@ $paso = isset($_SESSION['recuperar_id']) ? 2 : 1;
 if ($_POST && isset($_POST['paso_1'])) {
     csrf_verify();
     $correo = trim($_POST['correo']);
-    $stmt = $conn->prepare("SELECT id, pregunta_seguridad FROM usuarios WHERE correo = ?");
+    $stmt = $conn->prepare("SELECT id, pregunta_seguridad, bloqueado_hasta FROM usuarios WHERE correo = ?");
     $stmt->bind_param("s", $correo);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -37,6 +41,9 @@ if ($_POST && isset($_POST['paso_1'])) {
 
     if (!$user || !$user['pregunta_seguridad']) {
         $error = "No encontramos una cuenta con ese correo.";
+        $paso = 1;
+    } elseif ($user['bloqueado_hasta'] && strtotime($user['bloqueado_hasta']) > time()) {
+        $error = "La cuenta está bloqueada temporalmente por varios intentos fallidos. Intenta de nuevo en " . (int) ceil((strtotime($user['bloqueado_hasta']) - time()) / 60) . " minuto(s).";
         $paso = 1;
     } else {
         $_SESSION['recuperar_id'] = $user['id'];
@@ -52,15 +59,31 @@ if ($_POST && isset($_POST['paso_2'])) {
     $confirmar = $_POST['confirmar'];
     $id = (int) $_SESSION['recuperar_id'];
 
-    $stmt = $conn->prepare("SELECT respuesta_seguridad_hash FROM usuarios WHERE id = ?");
+    $stmt = $conn->prepare("SELECT respuesta_seguridad_hash, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$user || !password_verify(mb_strtolower($respuesta), $user['respuesta_seguridad_hash'])) {
+    if ($user && $user['bloqueado_hasta'] && strtotime($user['bloqueado_hasta']) > time()) {
+        $error = "La cuenta está bloqueada temporalmente por varios intentos fallidos. Intenta de nuevo en " . (int) ceil((strtotime($user['bloqueado_hasta']) - time()) / 60) . " minuto(s).";
+        $paso = 2;
+    } elseif (!$user || !password_verify(mb_strtolower($respuesta), $user['respuesta_seguridad_hash'])) {
         $error = "La respuesta no es correcta.";
         $paso = 2;
+        if ($user) {
+            $intentos = (int) $user['intentos_fallidos'] + 1;
+            $bloqueo = $intentos >= 5 ? date('Y-m-d H:i:s', time() + 15 * 60) : null;
+            $upd = $conn->prepare("UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id = ?");
+            $upd->bind_param("isi", $intentos, $bloqueo, $id);
+            $upd->execute();
+            $upd->close();
+            if ($bloqueo) {
+                $error = "Demasiados intentos fallidos: la cuenta se bloqueó durante 15 minutos.";
+                unset($_SESSION['recuperar_id'], $_SESSION['recuperar_pregunta']);
+                $paso = 1;
+            }
+        }
     } elseif (strlen($password) < 6) {
         $error = "La contraseña debe tener al menos 6 caracteres.";
         $paso = 2;
@@ -90,6 +113,7 @@ $pregunta = $_SESSION['recuperar_pregunta'] ?? '';
     <title>Recuperar contraseña - SIRAD</title>
     <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/mensajes.js" defer></script>
 </head>
 
 <body>

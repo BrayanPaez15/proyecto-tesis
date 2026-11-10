@@ -8,11 +8,13 @@
  * intentos fallidos consecutivos. Si las credenciales son validas pero la
  * cuenta esta pendiente o rechazada, informa el estado y no inicia sesion.
  * Si la cuenta esta aprobada, crea la sesion (incluyendo el rol y el permiso
- * de importacion) y redirige a index.php. Cuando entra un usuario no
+ * de importacion), cambia el identificador de sesion (renovar_sesion) y redirige a index.php. Cuando entra un usuario no
  * administrador, o intenta entrar uno sin aprobar, se registra una alerta
  * para los administradores (alertas.php).
  */
-session_start();
+require_once __DIR__ . '/includes/sesion.php';
+iniciar_sesion_segura();
+sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
 require_once "includes/alertas.php";
@@ -49,6 +51,7 @@ if ($_POST) {
         $reset->execute();
         $reset->close();
 
+        renovar_sesion();
         $_SESSION['usuario_id'] = $user['id'];
         $_SESSION['usuario_nombre'] = $user['nombre'];
         $_SESSION['usuario_rol'] = $user['rol'];
@@ -82,6 +85,7 @@ if ($_POST) {
     <title>Iniciar sesión - SIRAD</title>
     <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/mensajes.js" defer></script>
 </head>
 
 <body>

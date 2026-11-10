@@ -12,7 +12,9 @@
  * pendiente: no pueden iniciar sesion hasta que un administrador los
  * apruebe (usuarios.php), y el administrador recibe una alerta (alertas.php).
  */
-session_start();
+require_once __DIR__ . '/includes/sesion.php';
+iniciar_sesion_segura();
+sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
 require_once "includes/politica.php";
@@ -89,6 +91,7 @@ if ($_POST) {
     <title>Crear usuario - SIRAD</title>
     <link rel="stylesheet" href="css/styles.css">
   <script src="js/animations.js" defer></script>
+  <script src="js/mensajes.js" defer></script>
 </head>
 
 <body>

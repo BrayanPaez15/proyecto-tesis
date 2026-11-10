@@ -7,6 +7,8 @@
  * includes/politica.php.
  */
 require_once "includes/politica.php";
+require_once "includes/sesion.php";
+cabeceras_seguridad();
 ?>
 <!DOCTYPE html>
 <html lang="es">

@@ -20,7 +20,8 @@ Proyecto de grado (Ingeniería de Sistemas, UNIMINUTO). Uso restringido al conte
 - **Reportes** (`reportes.php`): panel solo para administradores con gráficas de barras (registros por módulo, altas por mes, usuarios por rol y etiquetas más usadas).
 - **Administración de usuarios** (`usuarios.php`, `usuario_editar.php`): el administrador aprueba, rechaza o revoca cuentas, asigna el permiso de importación, edita nombre, correo y rol, desbloquea cuentas, restablece contraseñas y elimina usuarios, con salvaguardas que impiden quitar el rol o el acceso al único administrador y cambiar el estado de la propia cuenta.
 - **Auditoría**: cada registro guarda quién lo creó y quién lo modificó por última vez (`creado_por`, `actualizado_por`, `actualizado_en`).
-- **Seguridad**: sentencias preparadas (mysqli) en toda consulta con datos de usuario, salida escapada con `htmlspecialchars`, tokens CSRF en los formularios POST, y una lista blanca de módulos/tablas para exportar, buscar e importar.
+- **Seguridad**: sentencias preparadas (mysqli) en toda consulta con datos de usuario, salida escapada con `htmlspecialchars`, tokens CSRF en los formularios POST, y una lista blanca de módulos/tablas para exportar, buscar e importar. Además (ver «Seguridad y despliegue»): archivos internos protegidos por `.htaccess`, sesión y cabeceras seguras, límite de intentos al recuperar la contraseña y exportación a Excel sin inyección de fórmulas.
+- **Avisos que desaparecen solos**: los mensajes de las pantallas de acceso (solicitud enviada, cuenta pendiente o rechazada, errores) y los avisos del administrador (cuenta aprobada o rechazada) se quitan pasados unos segundos (`js/mensajes.js`, `js/toast.js`).
 
 ## Arquitectura
 
@@ -106,4 +107,13 @@ El diagrama editable está en [`docs/diagrama_er.drawio`](docs/diagrama_er.drawi
 php db/backup.php
 ```
 
-Genera un `.sql` con estructura y datos en `db/backups/` (no se expone por HTTP).
+Genera un `.sql` con estructura y datos en `db/backups/`. La carpeta `db/` está bloqueada por HTTP mediante `.htaccess` (ver «Seguridad y despliegue»); el script solo se ejecuta por línea de comandos.
+
+## Seguridad y despliegue
+
+- **Archivos internos**: `.htaccess` (en la raíz, `db/`, `logs/` e `includes/`) impide descargar por HTTP el repositorio `.git`, los respaldos y el esquema (`db/`), los registros de errores (`logs/`), los archivos compartidos (`includes/`), la configuración (`config.php`, `conexion.php`, `auth.php`) y los archivos `*.sql`, `*.log` y `*.md`, y desactiva el listado de carpetas. Requiere que Apache tenga `AllowOverride All` en la carpeta del proyecto y `mod_rewrite` (XAMPP los trae). **Verifique después de instalar** que `http://localhost/proyecto/db/schema.sql` y `http://localhost/proyecto/.git/HEAD` no se descargan. Si se publica en otro servidor, mueva `db/`, `logs/` e `includes/` fuera de la carpeta pública.
+- **Sesión**: `includes/sesion.php` configura la cookie (HttpOnly, SameSite=Lax y Secure bajo HTTPS), rechaza identificadores de sesión no emitidos por el servidor, renueva el identificador al iniciar sesión y vacía la sesión y la cookie al cerrarla. Las páginas autenticadas se envían sin caché.
+- **Cabeceras**: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` y `Content-Security-Policy` (permite scripts y estilos en línea porque las páginas los usan).
+- **Recuperar contraseña**: cada respuesta incorrecta suma un intento fallido de la cuenta; a los 5 la cuenta se bloquea 15 minutos (el mismo bloqueo del inicio de sesión). Un administrador puede desbloquearla.
+- **Exportación a Excel**: las celdas se marcan como texto, de modo que un dato que empiece por `=`, `+`, `-` o `@` no se ejecuta como fórmula.
+- **Pendiente para producción**: servir por HTTPS, ocultar la versión de Apache y PHP (`ServerTokens Prod` en `httpd.conf`), definir una contraseña para el usuario `root` de MySQL y usar una cuenta de base de datos con privilegios mínimos.

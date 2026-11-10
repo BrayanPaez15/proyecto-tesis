@@ -52,7 +52,9 @@ echo "</tr>";
 while ($fila = $resultado->fetch_assoc()) {
     echo "<tr>";
     foreach (array_keys($columnas) as $campo) {
-        echo "<td>" . htmlspecialchars($fila[$campo] ?? '') . "</td>";
+        // mso-number-format "\@": Excel trata la celda como texto, de modo que un dato que empiece por
+        // =, +, - o @ no se ejecuta como formula (inyeccion de formulas).
+        echo "<td style=\"mso-number-format:'\\@'\">" . htmlspecialchars($fila[$campo] ?? '') . "</td>";
     }
     echo "</tr>";
 }

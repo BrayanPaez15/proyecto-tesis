@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   toast.className = `toast ${tipo}`;
   toast.textContent = mensaje;
   contenedor.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+  setTimeout(() => toast.remove(), Math.min(9000, Math.max(4000, mensaje.length * 60)));
 
   params.delete("msg");
   params.delete("tipo");

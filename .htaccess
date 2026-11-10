@@ -1,0 +1,26 @@
+# SIRAD - proteccion de archivos internos.
+# Requiere que Apache tenga AllowOverride All en la carpeta del proyecto y mod_rewrite
+# (XAMPP los trae). Si el proyecto se publica en otro servidor, mueva db/, logs/ e includes/
+# fuera de la carpeta publica o configure reglas equivalentes.
+
+# Sin listado de carpetas
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # El repositorio Git no se sirve
+    RewriteRule (^|/)\.git(/|$) - [R=404,L]
+    # Esquema, respaldos, migraciones, registros de errores y archivos compartidos: solo internos
+    RewriteRule ^(db|logs|includes)(/|$) - [F,L]
+</IfModule>
+
+# Archivos que no deben descargarse
+<FilesMatch "(^\.|\.(sql|log|md|bak|ini|bat|ps1|sh|drawio)$)">
+    Require all denied
+</FilesMatch>
+
+# Configuracion y guardas: se usan solo con require desde otros scripts
+<FilesMatch "^(config|conexion|auth)\.php$">
+    Require all denied
+</FilesMatch>
