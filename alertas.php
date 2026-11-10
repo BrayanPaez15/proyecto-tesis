@@ -82,8 +82,8 @@ $sinLeer = alertas_pendientes($conn);
             <tr>
               <td><?= htmlspecialchars($a['creado_en']) ?></td>
               <td><span class="pill <?= (int) $a['leida'] === 0 ? 'pill-pending' : '' ?>"><?= htmlspecialchars($tipos[$a['tipo']] ?? $a['tipo']) ?></span></td>
-              <td><?= htmlspecialchars($a['detalle']) ?></td>
-              <td>
+              <td class="detalle"><?= htmlspecialchars($a['detalle']) ?></td>
+              <td class="acciones">
                 <?php if ($a['usuario_id']): ?>
                   <a href="usuario_editar.php?id=<?= (int) $a['usuario_id'] ?>" class="btn-edit"><?= $a['estado'] === 'pendiente' ? 'Revisar solicitud' : 'Ver usuario' ?></a>
                 <?php endif; ?>

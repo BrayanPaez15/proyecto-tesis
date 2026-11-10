@@ -716,3 +716,19 @@ tbody tr:hover td {
     font-weight: 700;
     text-align: center;
 }
+
+/* Celdas de acciones y de texto largo (usuarios.php, alertas.php): se parten en varias lineas en vez de ensanchar la tabla */
+.table-card td.acciones {
+    white-space: normal;
+    min-width: 170px;
+}
+
+.table-card td.detalle {
+    white-space: normal;
+    min-width: 260px;
+}
+
+.table-card td.acciones .btn-edit,
+.table-card td.acciones .btn-delete {
+    margin: 2px 4px 2px 0;
+}

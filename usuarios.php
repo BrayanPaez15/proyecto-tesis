@@ -207,7 +207,7 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
               </td>
               <td><?= $u['politica_aceptada_en'] ? 'v' . htmlspecialchars($u['politica_version']) . ' · ' . htmlspecialchars(date('Y-m-d', strtotime($u['politica_aceptada_en']))) : 'Sin aceptar' ?></td>
               <td><?= htmlspecialchars(date('Y-m-d', strtotime($u['creado_en']))) ?></td>
-              <td>
+              <td class="acciones">
                 <?php if (!$esYo && $u['estado'] !== 'aprobado'): ?>
                   <form method="POST" style="display:inline">
                     <?php csrf_field(); ?>
