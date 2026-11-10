@@ -2,11 +2,11 @@
 /**
  * Agenda de disponibilidad compartida por los modulos.
  *
- * Guarda en la tabla `disponibilidad` los horarios (dia, hora de inicio y de
- * fin, disponible u ocupado, nota) de cualquier registro, identificado por el
- * par (modulo, registro_id), igual que registro_etiquetas. Asi la agenda es
- * una sola estructura y no un campo repetido en cada modulo. Hoy la usan
- * Artistas y Talleristas.
+ * Guarda los horarios (dia, hora de inicio y de fin, disponible u ocupado,
+ * nota) de un registro en la columna `disponibilidad` (JSON) de su propia fila,
+ * en las tablas artistas y talleristas. No hay una tabla aparte: la agenda es
+ * parte del registro y se elimina con el. El formato es el mismo en ambos
+ * modulos y lo valida agenda_leer_post().
  */
 
 function agenda_dias(): array
@@ -22,32 +22,57 @@ function agenda_tipos(): array
     return ['disponible' => 'Disponible', 'ocupado' => 'Ocupado'];
 }
 
+/** Tabla de cada modulo con agenda (lista blanca): la agenda se guarda en su columna `disponibilidad` (JSON). */
+function agenda_tabla(string $modulo): string
+{
+    $tablas = ['artistas' => 'artistas', 'talleristas' => 'talleristas'];
+    if (!isset($tablas[$modulo])) {
+        throw new InvalidArgumentException('Modulo sin agenda');
+    }
+    return $tablas[$modulo];
+}
+
+/** Decodifica el JSON de la columna disponibilidad a filas [dia, desde, hasta, tipo, nota], en orden de semana y hora. */
+function agenda_decodificar(?string $json): array
+{
+    $filas = [];
+    $lista = $json ? json_decode($json, true) : null;
+    if (is_array($lista)) {
+        foreach ($lista as $f) {
+            if (is_array($f) && isset($f['dia'], $f['desde'], $f['hasta'])) {
+                $filas[] = ['dia' => (string) $f['dia'], 'desde' => (string) $f['desde'], 'hasta' => (string) $f['hasta'],
+                    'tipo' => (string) ($f['tipo'] ?? 'disponible'), 'nota' => (string) ($f['nota'] ?? '')];
+            }
+        }
+    }
+    $orden = array_flip(array_keys(agenda_dias()));
+    usort($filas, fn($a, $b) => [$orden[$a['dia']] ?? 9, $a['desde']] <=> [$orden[$b['dia']] ?? 9, $b['desde']]);
+    return $filas;
+}
+
 function agenda_obtener(mysqli $conn, string $modulo, int $id): array
 {
-    $stmt = $conn->prepare("SELECT dia, TIME_FORMAT(hora_inicio, '%H:%i') AS desde, TIME_FORMAT(hora_fin, '%H:%i') AS hasta, tipo, nota
-        FROM disponibilidad WHERE modulo = ? AND registro_id = ?
-        ORDER BY FIELD(dia, 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'), hora_inicio");
-    $stmt->bind_param("si", $modulo, $id);
+    $tabla = agenda_tabla($modulo);
+    $stmt = $conn->prepare("SELECT disponibilidad FROM `$tabla` WHERE id = ?");
+    $stmt->bind_param("i", $id);
     $stmt->execute();
-    $filas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $fila = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    return $filas;
+    return agenda_decodificar($fila['disponibilidad'] ?? null);
 }
 
 /** Devuelve [registro_id => filas] de todo un modulo, para listarlo sin una consulta por fila. */
 function agenda_por_registro(mysqli $conn, string $modulo): array
 {
-    $stmt = $conn->prepare("SELECT registro_id, dia, TIME_FORMAT(hora_inicio, '%H:%i') AS desde, TIME_FORMAT(hora_fin, '%H:%i') AS hasta, tipo, nota
-        FROM disponibilidad WHERE modulo = ?
-        ORDER BY FIELD(dia, 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'), hora_inicio");
-    $stmt->bind_param("s", $modulo);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    $tabla = agenda_tabla($modulo);
+    $res = $conn->query("SELECT id, disponibilidad FROM `$tabla` WHERE disponibilidad IS NOT NULL");
     $mapa = [];
     while ($f = $res->fetch_assoc()) {
-        $mapa[(int) $f['registro_id']][] = $f;
+        $filas = agenda_decodificar($f['disponibilidad']);
+        if ($filas) {
+            $mapa[(int) $f['id']] = $filas;
+        }
     }
-    $stmt->close();
     return $mapa;
 }
 
@@ -111,31 +136,17 @@ function agenda_leer_post(): array
     return [$filas, ''];
 }
 
-/** Reemplaza la agenda del registro por las filas dadas (borra e inserta en una transaccion). */
+/** Guarda la agenda del registro en su columna disponibilidad (JSON); sin filas queda NULL. Viaja con el registro: al eliminarlo desaparece. */
 function agenda_guardar(mysqli $conn, string $modulo, int $id, array $filas, int $usuarioId): void
 {
-    $conn->begin_transaction();
-    $del = $conn->prepare("DELETE FROM disponibilidad WHERE modulo = ? AND registro_id = ?");
-    $del->bind_param("si", $modulo, $id);
-    $del->execute();
-    $del->close();
-    if ($filas) {
-        $ins = $conn->prepare("INSERT INTO disponibilidad (modulo, registro_id, dia, hora_inicio, hora_fin, tipo, nota, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        foreach ($filas as $f) {
-            $nota = $f['nota'] === '' ? null : $f['nota'];
-            $ins->bind_param("sisssssi", $modulo, $id, $f['dia'], $f['desde'], $f['hasta'], $f['tipo'], $nota, $usuarioId);
-            $ins->execute();
-        }
-        $ins->close();
+    $tabla = agenda_tabla($modulo);
+    $limpias = [];
+    foreach ($filas as $f) {
+        $limpias[] = ['dia' => $f['dia'], 'desde' => $f['desde'], 'hasta' => $f['hasta'], 'tipo' => $f['tipo'], 'nota' => $f['nota']];
     }
-    $conn->commit();
-}
-
-/** Borra la agenda de un registro (se llama al eliminar el registro, porque (modulo, registro_id) no tiene llave foranea). */
-function agenda_eliminar(mysqli $conn, string $modulo, int $id): void
-{
-    $stmt = $conn->prepare("DELETE FROM disponibilidad WHERE modulo = ? AND registro_id = ?");
-    $stmt->bind_param("si", $modulo, $id);
+    $json = $limpias ? json_encode($limpias, JSON_UNESCAPED_UNICODE) : null;
+    $stmt = $conn->prepare("UPDATE `$tabla` SET disponibilidad = ? WHERE id = ?");
+    $stmt->bind_param("si", $json, $id);
     $stmt->execute();
     $stmt->close();
 }

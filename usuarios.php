@@ -86,7 +86,6 @@ if (isset($_POST['cambiar_estado'])) {
         $stmt->bind_param("si", $nuevoEstado, $idObjetivo);
         $stmt->execute();
         $stmt->close();
-        alertas_resolver_usuario($conn, $idObjetivo);
         if ($nuevoEstado === 'aprobado') {
             header("Location: usuario_editar.php?id=$idObjetivo&msg=" . rawurlencode("Cuenta aprobada. Asigna ahora sus permisos por módulo: sin permisos no podrá ver ni registrar nada.") . "&tipo=success");
         } else {
@@ -110,9 +109,7 @@ if (isset($_POST['permiso_importar'])) {
     exit;
 }
 
-$r = $conn->query("SELECT u.id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en,
-        (SELECT COUNT(*) FROM permisos p WHERE p.usuario_id = u.id AND p.puede_ver = 1) AS n_ver,
-        (SELECT COUNT(*) FROM permisos p WHERE p.usuario_id = u.id AND p.puede_registrar = 1) AS n_registrar
+$r = $conn->query("SELECT u.id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos
     FROM usuarios u ORDER BY FIELD(u.estado, 'pendiente', 'aprobado', 'rechazado'), u.nombre");
 $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total'];
 ?>
@@ -162,6 +159,9 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
           <?php while ($u = $r->fetch_assoc()):
             $bloqueado = $u['bloqueado_hasta'] && strtotime($u['bloqueado_hasta']) > time();
             $esAdminFila = $u['rol'] === 'admin';
+            $permisosFila = permisos_decodificar($u['permisos_modulos']);
+            $nVer = count(array_filter($permisosFila, fn($p) => $p['ver']));
+            $nRegistrar = count(array_filter($permisosFila, fn($p) => $p['registrar']));
             $esYo = (int) $u['id'] === (int) $_SESSION['usuario_id'];
           ?>
             <tr>
@@ -182,10 +182,10 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
                   Todos
                 <?php elseif ($u['estado'] !== 'aprobado'): ?>
                   &mdash;
-                <?php elseif ((int) $u['n_ver'] === 0 && (int) $u['n_registrar'] === 0): ?>
+                <?php elseif ($nVer === 0 && $nRegistrar === 0): ?>
                   <span class="pill pill-pending">Sin permisos</span>
                 <?php else: ?>
-                  Ver: <?= (int) $u['n_ver'] ?> · Registrar: <?= (int) $u['n_registrar'] ?>
+                  Ver: <?= $nVer ?> · Registrar: <?= $nRegistrar ?>
                 <?php endif; ?>
               </td>
               <td>

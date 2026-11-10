@@ -3,9 +3,10 @@
  * Alertas del administrador.
  *
  * Lista las cuentas creadas, los inicios de sesion de usuarios y los
- * intentos de acceso con cuentas sin aprobar, con las no leidas primero.
+ * intentos de acceso con cuentas sin aprobar, con las no leidas primero
+ * (ver includes/alertas.php: se calculan desde la tabla `usuarios`).
  * Para las cuentas pendientes permite aprobarlas o rechazarlas desde la
- * misma alerta. Permite marcar una alerta o todas como leidas. Solo accesible para
+ * misma alerta, y permite marcar todas como leidas. Solo accesible para
  * administradores. Requiere sesion activa (auth.php).
  */
 require "auth.php";
@@ -17,26 +18,19 @@ require_admin();
 
 if (isset($_POST['marcar_todas'])) {
     csrf_verify();
-    $conn->query("UPDATE alertas SET leida = 1 WHERE leida = 0");
+    alertas_marcar_vistas($conn, (int) $_SESSION['usuario_id']);
     header("Location: alertas.php?msg=" . rawurlencode("Alertas marcadas como leídas") . "&tipo=success");
     exit;
 }
-if (isset($_POST['marcar_una'])) {
-    csrf_verify();
-    $idAlerta = (int) $_POST['marcar_una'];
-    $stmt = $conn->prepare("UPDATE alertas SET leida = 1 WHERE id = ?");
-    $stmt->bind_param("i", $idAlerta);
-    $stmt->execute();
-    $stmt->close();
-    header("Location: alertas.php");
-    exit;
-}
 
-$r = $conn->query("SELECT a.id, a.tipo, a.usuario_id, a.detalle, a.leida, a.creado_en, u.estado
-    FROM alertas a LEFT JOIN usuarios u ON u.id = a.usuario_id
-    ORDER BY a.leida ASC, a.creado_en DESC, a.id DESC LIMIT 200");
+$eventos = alertas_eventos($conn, (int) $_SESSION['usuario_id']);
 $tipos = alerta_tipos();
-$sinLeer = alertas_pendientes($conn);
+$sinLeer = 0;
+foreach ($eventos as $e) {
+    if ($e['sin_leer']) {
+        $sinLeer++;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -65,7 +59,7 @@ $sinLeer = alertas_pendientes($conn);
       </form>
     <?php endif; ?>
 
-    <?php if ($r->num_rows === 0): ?>
+    <?php if (count($eventos) === 0): ?>
       <p class="empty-state">Aún no hay alertas.</p>
     <?php else: ?>
       <div class="search-bar">
@@ -79,13 +73,13 @@ $sinLeer = alertas_pendientes($conn);
             <th>Detalle</th>
             <th>Acciones</th>
           </tr>
-          <?php while ($a = $r->fetch_assoc()): ?>
+          <?php foreach ($eventos as $a): ?>
             <tr>
-              <td><?= htmlspecialchars($a['creado_en']) ?></td>
-              <td><span class="pill <?= (int) $a['leida'] === 0 ? 'pill-pending' : '' ?>"><?= htmlspecialchars($tipos[$a['tipo']] ?? $a['tipo']) ?></span></td>
+              <td><?= htmlspecialchars($a['fecha']) ?></td>
+              <td><span class="pill <?= $a['sin_leer'] ? 'pill-pending' : '' ?>"><?= htmlspecialchars($tipos[$a['tipo']] ?? $a['tipo']) ?></span></td>
               <td class="detalle"><?= htmlspecialchars($a['detalle']) ?></td>
               <td class="acciones">
-                <?php if ($a['usuario_id'] && $a['estado'] === 'pendiente'): ?>
+                <?php if ($a['estado'] === 'pendiente' && $a['tipo'] !== 'inicio_sesion'): ?>
                   <form method="POST" action="usuarios.php" style="display:inline">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="usuario_id" value="<?= (int) $a['usuario_id'] ?>">
@@ -93,18 +87,10 @@ $sinLeer = alertas_pendientes($conn);
                     <button type="submit" name="cambiar_estado" value="rechazado" class="btn-delete">Rechazar</button>
                   </form>
                 <?php endif; ?>
-                <?php if ($a['usuario_id']): ?>
-                  <a href="usuario_editar.php?id=<?= (int) $a['usuario_id'] ?>" class="btn-edit"><?= $a['estado'] === 'pendiente' ? 'Revisar solicitud' : 'Ver usuario' ?></a>
-                <?php endif; ?>
-                <?php if ((int) $a['leida'] === 0): ?>
-                  <form method="POST" style="display:inline">
-                    <?php csrf_field(); ?>
-                    <button type="submit" name="marcar_una" value="<?= (int) $a['id'] ?>" class="btn-edit">Marcar leída</button>
-                  </form>
-                <?php endif; ?>
+                <a href="usuario_editar.php?id=<?= (int) $a['usuario_id'] ?>" class="btn-edit"><?= $a['estado'] === 'pendiente' ? 'Revisar solicitud' : 'Ver usuario' ?></a>
               </td>
             </tr>
-          <?php endwhile; ?>
+          <?php endforeach; ?>
         </table>
       </div>
       <div class="pagination"></div>

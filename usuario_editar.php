@@ -85,9 +85,6 @@ if ($_POST) {
             $stmt->bind_param("ssssii", $nombre, $correo, $rol, $estado, $puedeImportar, $id);
             $stmt->execute();
             $stmt->close();
-            if ($estado !== $usuario['estado']) {
-                alertas_resolver_usuario($conn, $id);
-            }
 
             if ($id === (int) $_SESSION['usuario_id']) {
                 $_SESSION['usuario_nombre'] = $nombre;

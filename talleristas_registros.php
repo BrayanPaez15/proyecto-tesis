@@ -25,7 +25,6 @@ if (isset($_POST['eliminar_id'])) {
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $stmt->close();
-    agenda_eliminar($conn, 'talleristas', $id);
     header("Location: talleristas_registros.php?msg=" . rawurlencode("Registro eliminado") . "&tipo=success");
     exit;
 }

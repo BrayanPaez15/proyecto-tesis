@@ -1,8 +1,9 @@
 -- Esquema de la base de datos "directorio" (SIRAD)
 -- Solo estructura (sin datos), generado con mysqldump --no-data
--- 17 tablas y 26 llaves foraneas (14 tablas y 23 llaves verificadas contra un volcado de la base en uso, 2026-10-16;
--- el 2026-11-10 se agregaron las tablas `disponibilidad`, `permisos` y `alertas` y las columnas de aprobacion,
--- politica e importacion de `usuarios`; ver db/migraciones/).
+-- 14 tablas y 23 llaves foraneas (verificadas contra un volcado de la base en uso, 2026-10-16).
+-- El 2026-11-11 se agregaron columnas, sin tablas nuevas: en `usuarios` (estado de la cuenta, politica aceptada,
+-- permiso de importacion, permisos por modulo en JSON, ultimo acceso, ultimo intento sin aprobar y marca de lectura
+-- de alertas) y la columna `disponibilidad` (agenda en JSON) en `artistas` y `talleristas`; ver db/migraciones/.
 -- Los contadores AUTO_INCREMENT se omiten a proposito: dependen de los datos, no de la estructura.
 -- ATENCION: este script ejecuta DROP TABLE IF EXISTS sobre cada tabla. Si ya existe una base
 -- "directorio" con informacion, haga un respaldo antes de importarlo (php db/backup.php).
@@ -21,22 +22,6 @@ USE `directorio`;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-DROP TABLE IF EXISTS `alertas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `alertas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `tipo` enum('registro','inicio_sesion','intento_pendiente') NOT NULL,
-  `usuario_id` int(11) DEFAULT NULL,
-  `detalle` varchar(255) NOT NULL,
-  `leida` tinyint(1) NOT NULL DEFAULT 0,
-  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_alertas_leida` (`leida`,`creado_en`),
-  KEY `fk_alertas_usuario` (`usuario_id`),
-  CONSTRAINT `fk_alertas_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `artistas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -49,6 +34,7 @@ CREATE TABLE `artistas` (
   `telefono` varchar(50) DEFAULT NULL,
   `correo` varchar(150) DEFAULT NULL,
   `filbo` varchar(50) DEFAULT NULL,
+  `disponibilidad` text DEFAULT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
@@ -110,27 +96,6 @@ CREATE TABLE `directivos` (
   KEY `fk_directivos_actualizado_por` (`actualizado_por`),
   CONSTRAINT `fk_directivos_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_directivos_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `disponibilidad`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `disponibilidad` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `modulo` varchar(30) NOT NULL,
-  `registro_id` int(11) NOT NULL,
-  `dia` enum('lunes','martes','miercoles','jueves','viernes','sabado','domingo') NOT NULL,
-  `hora_inicio` time NOT NULL,
-  `hora_fin` time NOT NULL,
-  `tipo` enum('disponible','ocupado') NOT NULL DEFAULT 'disponible',
-  `nota` varchar(150) DEFAULT NULL,
-  `creado_por` int(11) DEFAULT NULL,
-  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_disponibilidad_registro` (`modulo`,`registro_id`),
-  KEY `fk_disponibilidad_creado_por` (`creado_por`),
-  CONSTRAINT `fk_disponibilidad_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `chk_disponibilidad_horas` CHECK (`hora_fin` > `hora_inicio`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `editoriales`;
@@ -244,18 +209,6 @@ CREATE TABLE `mercadeo` (
   CONSTRAINT `fk_mercadeo_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `permisos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `permisos` (
-  `usuario_id` int(11) NOT NULL,
-  `modulo` varchar(30) NOT NULL,
-  `puede_ver` tinyint(1) NOT NULL DEFAULT 0,
-  `puede_registrar` tinyint(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`usuario_id`,`modulo`),
-  CONSTRAINT `fk_permisos_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `practicantes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -328,6 +281,7 @@ CREATE TABLE `talleristas` (
   `correo` varchar(150) DEFAULT NULL,
   `cargo` varchar(100) DEFAULT NULL,
   `perfil` text DEFAULT NULL,
+  `disponibilidad` text DEFAULT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
   `creado_por` int(11) DEFAULT NULL,
   `actualizado_en` timestamp NULL DEFAULT NULL,
@@ -383,6 +337,10 @@ CREATE TABLE `usuarios` (
   `politica_version` varchar(10) DEFAULT NULL,
   `politica_aceptada_en` datetime DEFAULT NULL,
   `puede_importar` tinyint(1) NOT NULL DEFAULT 0,
+  `permisos_modulos` text DEFAULT NULL,
+  `ultimo_acceso` datetime DEFAULT NULL,
+  `ultimo_intento_pendiente` datetime DEFAULT NULL,
+  `alertas_vistas_hasta` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `correo` (`correo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

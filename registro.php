@@ -18,7 +18,6 @@ sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
 require_once "includes/politica.php";
-require_once "includes/alertas.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -75,9 +74,6 @@ if ($_POST) {
         $stmt->execute();
         $nuevoId = $conn->insert_id;
         $stmt->close();
-        if (!$esPrimero) {
-            alerta_registrar($conn, 'registro', $nuevoId, "Nueva cuenta creada: $nombre ($correo). Pendiente de aprobación.");
-        }
         header("Location: login.php?registrado=" . ($esPrimero ? "1" : "pendiente"));
         exit;
     }

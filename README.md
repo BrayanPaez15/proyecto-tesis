@@ -9,12 +9,12 @@ Proyecto de grado (Ingeniería de Sistemas, UNIMINUTO). Uso restringido al conte
 - **Autenticación**: registro e inicio de sesión con contraseñas encriptadas (`password_hash`), bloqueo temporal tras 5 intentos fallidos, y recuperación de contraseña mediante pregunta de seguridad.
 - **Registro con aprobación**: el registro es una *solicitud*. Las cuentas nuevas quedan **pendientes** y no pueden iniciar sesión hasta que un administrador las apruebe en `usuarios.php` (o las rechace). El primer usuario registrado queda como administrador y aprobado. Si el administrador revoca una cuenta, su sesión abierta se cierra en la siguiente petición.
 - **Política de tratamiento de datos** (`politica.php`): para crear la cuenta hay que aceptarla; se guardan la versión y la fecha de aceptación (`politica_version`, `politica_aceptada_en`). La versión vigente está en `includes/politica.php`. El texto es un borrador que la Fundación debe revisar y completar con sus datos de contacto.
-- **Roles y permisos por módulo**: el primer usuario registrado queda como **administrador** automáticamente; el resto se crea como **usuario**. Editar, eliminar y exportar a Excel están restringidos a administradores. Un usuario aprobado **no ve ni registra nada** hasta que un administrador le asigne, en `usuario_editar.php`, los permisos de cada módulo: **Ver** (consultar los registros) y **Registrar** (agregar registros nuevos). Sin permisos, el panel no muestra módulos y se bloquean la búsqueda, la importación y las plantillas; los cambios de permisos rigen de inmediato, incluso en sesiones abiertas.
-- **Alertas para el administrador** (`alertas.php`): el encabezado muestra cuántas alertas hay sin leer. Se registran las cuentas nuevas (con aviso para aprobarlas), los inicios de sesión de usuarios y los intentos de entrar con una cuenta aún no aprobada; se pueden marcar como leídas.
+- **Roles y permisos por módulo**: el primer usuario registrado queda como **administrador** automáticamente; el resto se crea como **usuario**. Editar, eliminar y exportar a Excel están restringidos a administradores. Un usuario aprobado **no ve ni registra nada** hasta que un administrador le asigne, en `usuario_editar.php`, los permisos de cada módulo (se guardan en `usuarios.permisos_modulos`): **Ver** (consultar los registros) y **Registrar** (agregar registros nuevos). Sin permisos, el panel no muestra módulos y se bloquean la búsqueda, la importación y las plantillas; los cambios de permisos rigen de inmediato, incluso en sesiones abiertas.
+- **Alertas para el administrador** (`alertas.php`): el encabezado muestra cuántas alertas hay sin leer. Se avisa de las cuentas nuevas (con botones Aprobar y Rechazar), de los inicios de sesión de usuarios y de los intentos de entrar con una cuenta aún no aprobada. No hay una tabla de alertas: se calculan desde `usuarios` (`creado_en`, `ultimo_acceso`, `ultimo_intento_pendiente`) y cada administrador tiene su marca de lectura (`alertas_vistas_hasta`); se muestra el último evento de cada usuario.
 - **CRUD por módulo**: cada uno de los once módulos tiene su propio formulario de registro/edición y su vista de consulta, con búsqueda y paginación del lado del cliente.
 - **Búsqueda global** (`buscar.php`): busca un término en los once módulos a la vez.
 - **Importación masiva** (`importar.php`): carga registros desde un CSV, con plantilla descargable por módulo y detección de correos duplicados. La pueden usar los administradores y los usuarios a quienes un administrador les asigne el permiso de importación (columna `puede_importar`, desde `usuarios.php` o `usuario_editar.php`); además, un usuario solo importa a los módulos donde tiene permiso de **Registrar**.
-- **Agenda de disponibilidad** (Artistas y Talleristas): cada registro puede tener varios horarios con día, hora de inicio y fin, tipo (disponible u ocupado) y nota. Se guardan en una sola tabla compartida, `disponibilidad` (`modulo` + `registro_id`, igual que `registro_etiquetas`), y no como un campo repetido en cada módulo. Los horarios de un mismo día no pueden cruzarse. El campo de texto `agenda` de Artistas se conserva como «Agenda (notas)».
+- **Agenda de disponibilidad** (Artistas y Talleristas): cada registro puede tener varios horarios con día, hora de inicio y fin, tipo (disponible u ocupado) y nota. Se guardan en la columna `disponibilidad` (JSON) de la propia fila, con el mismo formato en ambos módulos, de modo que no hay una tabla aparte y la agenda se elimina junto con el registro. Los horarios de un mismo día no pueden cruzarse. El campo de texto `agenda` de Artistas se conserva como «Agenda (notas)».
 - **Exportación a Excel** (`exportar.php`): descarga los registros de un módulo filtrados por rango de fechas.
 - **Etiquetas** (`etiquetas.php`): quien tiene permiso de **Registrar** en un módulo clasifica sus registros con etiquetas de color; crear y eliminar etiquetas del catálogo es exclusivo del administrador.
 - **Reportes** (`reportes.php`): panel solo para administradores con gráficas de barras (registros por módulo, altas por mes, usuarios por rol y etiquetas más usadas).
@@ -36,7 +36,7 @@ flowchart LR
         Includes["includes/ (layout, csrf, roles, modulos)"]
         Herramientas["buscar.php · importar.php · exportar.php"]
     end
-    DB[("MySQL — base de datos `directorio`\n17 tablas: 11 de dominio + usuarios + etiquetas + registro_etiquetas + disponibilidad + permisos + alertas")]
+    DB[("MySQL — base de datos `directorio`\n14 tablas: 11 de dominio + usuarios + etiquetas + registro_etiquetas")]
 
     UI -->|HTTP| Servidor
     Auth --> DB
@@ -83,16 +83,22 @@ proyecto/
 
 ### Actualizar una base existente
 
-Si ya tienes la base `directorio` con datos (versión anterior), no vuelvas a importar `schema.sql`: haz un respaldo (`php db/backup.php`) y aplica las migraciones, en orden. No borran nada y dejan aprobadas las cuentas existentes (que quedan sin permisos por módulo hasta que un administrador se los asigne):
+Si ya tienes la base `directorio` con datos, no vuelvas a importar `schema.sql`: haz un respaldo (`php db/backup.php`) y aplica la migración que corresponda. Ninguna borra datos y ambas dejan la base en las mismas 14 tablas y 23 llaves foráneas:
 
 ```bash
-mysql -u root directorio < db/migraciones/2026-11-10_aprobacion_politica_importacion_agenda.sql
-mysql -u root directorio < db/migraciones/2026-11-10_permisos_y_alertas.sql
+# Desde la versión 1.0 (esquema original):
+mysql -u root directorio < db/migraciones/2026-11-11_actualizacion_version_2.sql
+# Desde la base con 17 tablas (disponibilidad, permisos y alertas), que se convierten en columnas:
+mysql -u root directorio < db/migraciones/2026-11-11_consolidar_desde_17_tablas.sql
 ```
+
+Las cuentas existentes quedan aprobadas (sin permisos por módulo hasta que un administrador se los asigne).
 
 ## Modelo de datos
 
-La base `directorio` tiene 17 tablas y 26 llaves foráneas (el diagrama de `docs/` aún muestra las 14 tablas y 23 llaves anteriores a las tablas `disponibilidad`, `permisos` y `alertas`):
+La base `directorio` tiene 14 tablas y 23 llaves foráneas. Las funciones de la versión 2.0 (aprobación de cuentas, permisos por módulo, alertas y agenda) no agregan tablas: usan columnas nuevas de `usuarios` (`estado`, `politica_version`, `politica_aceptada_en`, `puede_importar`, `permisos_modulos`, `ultimo_acceso`, `ultimo_intento_pendiente`, `alertas_vistas_hasta`) y la columna `disponibilidad` de `artistas` y `talleristas`.
+
+Las relaciones del esquema son:
 
 - Las once tablas de módulos referencian `usuarios.id` mediante `creado_por` y `actualizado_por` (cero o uno a cero o muchos, `ON DELETE SET NULL`: al borrar un usuario se conserva el registro y solo se anula su autor).
 - `registro_etiquetas.etiqueta_id` referencia `etiquetas.id` (`ON DELETE CASCADE`). Además `registro_etiquetas` identifica el registro etiquetado con el par `(modulo, registro_id)`, una referencia lógica sin llave foránea porque un mismo campo no puede apuntar a once tablas.

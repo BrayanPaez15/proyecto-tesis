@@ -17,7 +17,6 @@ iniciar_sesion_segura();
 sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
-require_once "includes/alertas.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -44,9 +43,12 @@ if ($_POST) {
         $error = $user['estado'] === 'pendiente'
             ? "Tu cuenta está pendiente de aprobación. Un administrador debe aprobarla antes de que puedas iniciar sesión."
             : "Tu solicitud de acceso fue rechazada. Comunícate con un administrador.";
-        alerta_registrar_una_vez($conn, 'intento_pendiente', (int) $user['id'], "{$user['nombre']} ($correo) intentó iniciar sesión, pero su cuenta está " . ($user['estado'] === 'pendiente' ? 'pendiente de aprobación.' : 'rechazada.'));
+        $marca = $conn->prepare("UPDATE usuarios SET ultimo_intento_pendiente = NOW() WHERE id = ?");
+        $marca->bind_param("i", $user['id']);
+        $marca->execute();
+        $marca->close();
     } elseif ($user && password_verify($password, $user['password'])) {
-        $reset = $conn->prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
+        $reset = $conn->prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = NOW() WHERE id = ?");
         $reset->bind_param("i", $user['id']);
         $reset->execute();
         $reset->close();
@@ -56,9 +58,6 @@ if ($_POST) {
         $_SESSION['usuario_nombre'] = $user['nombre'];
         $_SESSION['usuario_rol'] = $user['rol'];
         $_SESSION['usuario_puede_importar'] = (int) $user['puede_importar'];
-        if ($user['rol'] !== 'admin') {
-            alerta_registrar($conn, 'inicio_sesion', (int) $user['id'], "{$user['nombre']} ($correo) inició sesión.");
-        }
         header("Location: index.php");
         exit;
     } else {

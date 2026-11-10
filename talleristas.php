@@ -2,7 +2,7 @@
 /**
  * Modulo Talleristas - Registrar.
  *
- * Formulario de registro y edicion para la tabla `talleristas` y su agenda de disponibilidad (tabla `disponibilidad`). Inserta un
+ * Formulario de registro y edicion para la tabla `talleristas` y su agenda de disponibilidad (columna `disponibilidad`). Inserta un
  * nuevo registro (validando formato de correo y evitando duplicados por
  * correo) o actualiza uno existente (parametro GET "id", solo permitido
  * a administradores) mediante sentencias preparadas, dejando rastro de
