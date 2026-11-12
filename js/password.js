@@ -62,7 +62,8 @@
     campo.addEventListener('focus', function () { mostrar(true); if (tactil) flotante(true); });
     campo.addEventListener('blur', function () {
       var cumple = rs.every(function (r) { return r.li.classList.contains('ok'); });
-      if (campo.value === '' || cumple) mostrar(false);
+      // en el registro el nivel flota sobre los campos de abajo: se oculta siempre al salir
+      if (campo.value === '' || cumple || campo.closest('.campo-pw')) mostrar(false);
       if (tactil) flotante(false);
     });
     window.addEventListener('scroll', function () { flotante(false); }, true);

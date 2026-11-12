@@ -836,6 +836,7 @@ tbody tr:hover td {
 @media (max-width: 640px) { .auth-card.auth-ancho { grid-template-columns: 1fr; } }
 
 /* Manual de uso fijo en la esquina inferior derecha (includes/ayuda.php, js/ayuda.js) */
+.auth-error a { color: #7f1d1d; font-weight: 700; text-decoration: underline; word-break: break-all; }
 .ayuda-barra { position: fixed; right: 18px; bottom: 18px; z-index: 3000; display: flex; align-items: center; gap: 10px; }
 .ayuda-whatsapp { display: flex; align-items: center; gap: 8px; width: 52px; height: 52px; justify-content: center; position: relative; border-radius: 50%; background: #25d366; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 6px 18px rgba(18, 140, 70, .4); transition: transform .2s ease, box-shadow .2s ease; }
 .ayuda-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(18, 140, 70, .5); color: #fff; }
