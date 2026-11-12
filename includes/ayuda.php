@@ -52,6 +52,7 @@ function ayuda_secciones(): array
           <li>Escriba su <b>nombre</b> y su <b>correo</b>.</li>
           <li>En <b>«¿Quién eres y por qué necesitas acceso?»</b> cuente en una o dos frases quién es, de qué organización y para qué usará el sistema (de 15 a 500 caracteres). El administrador lo lee para decidir si aprueba su cuenta.</li>
           <li>Escriba una <b>contraseña segura</b> (vea «Contraseñas seguras») y elija una <b>pregunta de seguridad</b> con su respuesta: sirve para recuperar la contraseña si la olvida.</li>
+          <li>Responda la <b>verificación</b>: una suma sencilla, por ejemplo «¿cuánto es 4 + 7?». La pregunta cambia en cada visita; si se equivoca, el sistema le muestra una nueva.</li>
           <li>Lea la política de tratamiento de datos personales y marque la casilla de aceptación; sin aceptarla no se crea la cuenta.</li>
           <li>Haga clic en <b>Solicitar cuenta</b>. Verá el aviso «Solicitud enviada» y deberá esperar la aprobación.</li>
         </ol>
@@ -130,7 +131,7 @@ function ayuda_secciones(): array
               <li>Escriba un registro por fila, desde la fila 2, <b>sin cambiar los encabezados</b> de la fila 1. Guárdelo como Excel (.xlsx) o como CSV.</li>
               <li>Elija el módulo, seleccione el archivo y haga clic en <b>Importar</b>.</li>
             </ol>
-            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
+            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Si llega al límite, la página le dice a qué hora puede volver a importar y desactiva el botón hasta entonces. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
     }
 
     if ($admin) {
@@ -142,6 +143,7 @@ function ayuda_secciones(): array
             <ol>
               <li>Lea el <b>Motivo</b> que la persona escribió bajo su nombre y haga clic en <b>Aprobar</b> o <b>Rechazar</b>. Al aprobar se abre la edición para asignar los permisos.</li>
               <li>En <b>Editar</b>, la matriz de permisos define en qué módulos puede <b>Ver</b> y en cuáles <b>Registrar</b>; los cambios rigen de inmediato, aunque la persona tenga la sesión abierta.</li>
+              <li>Cuando las pendientes llegan al 80 % del máximo, un aviso amarillo en la parte superior de todas las páginas se lo indica; con el máximo se pone rojo y el registro no recibe más solicitudes hasta que apruebe o rechace algunas.</li>
               <li><b>Permitir / Quitar</b> en la columna «Importar» da o retira el permiso de importar.</li>
               <li>Desde «Editar» también puede cambiar nombre, correo, rol y estado, <b>desbloquear</b> una cuenta bloqueada o <b>restablecer</b> su contraseña (la nueva debe cumplir la política).</li>
               <li><b>Revocar acceso</b> deja la cuenta rechazada; <b>Borrar</b> la elimina (los registros que creó se conservan).</li>
@@ -159,6 +161,8 @@ function ayuda_secciones(): array
         <details class=\"ayuda-faq\"><summary>Creé mi cuenta y no puedo entrar.</summary><p>Las cuentas nuevas quedan pendientes hasta que un administrador las apruebe. Si el aviso dice «rechazada», use el contacto que muestra.</p></details>
         <details class=\"ayuda-faq\"><summary>Me dice que ya existe un registro con ese correo.</summary><p>Dentro de un módulo no se repiten correos, NIT ni cédulas. Búsquelo en «Ver registros»; si necesita corregirlo, un administrador puede editarlo.</p></details>
         <details class=\"ayuda-faq\"><summary>Importé un archivo y no se guardó nada.</summary><p>Revise que no supere el tamaño o las filas permitidas, que los encabezados sean los de la plantilla y que el archivo sea .xlsx o .csv.</p></details>
+        <details class=\"ayuda-faq\"><summary>Me dice «Llegaste al límite de importaciones por hora».</summary><p>Cada usuario puede importar un número de archivos por hora. El aviso indica a qué hora podrá volver a importar; hasta entonces el botón está desactivado.</p></details>
+        <details class=\"ayuda-faq\"><summary>El registro dice que la verificación no es correcta.</summary><p>Responda la suma que ve en el formulario en ese momento; cambia en cada visita y sirve una sola vez.</p></details>
         <details class=\"ayuda-faq\"><summary>Mi cuenta quedó bloqueada.</summary><p>Espere 15 minutos o pida a un administrador que la desbloquee desde Usuarios → Editar.</p></details>"];
 
     $publicas = ['cuenta', 'ingresar', 'contrasena', 'recuperar', 'faq'];
