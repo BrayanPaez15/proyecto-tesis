@@ -44,6 +44,9 @@ defined('CONTACTO_WHATSAPP') || define('CONTACTO_WHATSAPP', 'https://wa.me/57305
 // Importacion desde Excel o CSV: tamano maximo del archivo en MB y filas maximas por archivo.
 defined('IMPORTAR_MAX_MB') || define('IMPORTAR_MAX_MB', 5);
 defined('IMPORTAR_MAX_FILAS') || define('IMPORTAR_MAX_FILAS', 5000);
+// Importaciones por usuario: maximo de archivos procesados dentro de la ventana en minutos (frena el relleno masivo).
+defined('IMPORTAR_MAX_POR_HORA') || define('IMPORTAR_MAX_POR_HORA', 5);
+defined('IMPORTAR_VENTANA_MIN') || define('IMPORTAR_VENTANA_MIN', 60);
 // Manual de uso flotante (boton «Manual» en la esquina inferior derecha de todas las paginas).
 defined('AYUDA_ACTIVA') || define('AYUDA_ACTIVA', true);
 defined('MAIL_REMITENTE') || define('MAIL_REMITENTE', 'no-responder@sirad.local');

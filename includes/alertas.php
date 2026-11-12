@@ -83,3 +83,18 @@ function alertas_marcar_vistas(mysqli $conn, int $adminId): void
     $stmt->execute();
     $stmt->close();
 }
+
+/**
+ * Estado de la cola de solicitudes de cuenta para avisar al administrador: devuelve null mientras haya
+ * holgura, o ['pendientes', 'maximo', 'llena'] cuando se llega al 80 % del maximo (SOLICITUDES_MAX_PENDIENTES)
+ * o al maximo, momento en que el registro deja de recibir solicitudes.
+ */
+function cola_solicitudes(mysqli $conn): ?array
+{
+    $maximo = (int) SOLICITUDES_MAX_PENDIENTES;
+    $pendientes = (int) $conn->query("SELECT COUNT(*) FROM usuarios WHERE estado = 'pendiente'")->fetch_row()[0];
+    if ($maximo <= 0 || $pendientes < (int) ceil($maximo * 0.8)) {
+        return null;
+    }
+    return ['pendientes' => $pendientes, 'maximo' => $maximo, 'llena' => $pendientes >= $maximo];
+}

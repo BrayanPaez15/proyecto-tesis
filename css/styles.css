@@ -878,3 +878,15 @@ tbody tr:hover td {
 }
 @media print { .ayuda-barra, .ayuda-boton, .ayuda-panel { display: none !important; } }
 
+
+/* campo trampa del registro: fuera de la pantalla para las personas, visible para los bots */
+.campo-trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* aviso al administrador cuando la cola de solicitudes de cuenta esta llena o casi llena */
+.aviso-cola { margin: 0; padding: 10px 20px; background: #fff3cd; color: #664d03; border-bottom: 1px solid #ffecb5; font-size: 14px; text-align: center; }
+.aviso-cola.llena { background: #f8d7da; color: #58151c; border-bottom-color: #f1aeb5; }
+.aviso-cola a { color: inherit; font-weight: 700; text-decoration: underline; }
+@media print { .aviso-cola { display: none; } }
+
+/* importar.php: formulario sin cupo de importaciones */
+.form-card button:disabled, .form-card input:disabled { opacity: .5; cursor: not-allowed; }

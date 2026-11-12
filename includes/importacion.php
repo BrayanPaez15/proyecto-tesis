@@ -74,3 +74,52 @@ function filas_importacion(string $ruta, string $nombreOriginal): Generator
         throw new RuntimeException('Formato no admitido. Suba un archivo de Excel (.xlsx) o un CSV (.csv).');
     }
 }
+
+/**
+ * Reserva un cupo de importacion para el usuario: cuenta una importacion mas dentro de la ventana
+ * (IMPORTAR_VENTANA_MIN minutos desde la primera) y devuelve 0 si puede seguir, o los minutos que
+ * faltan para que se libere el cupo si ya alcanzo IMPORTAR_MAX_POR_HORA. Usa la hora de la base de
+ * datos y una sola sentencia, asi dos importaciones a la vez no se saltan el limite.
+ */
+function importacion_reservar(mysqli $conn, int $usuarioId): int
+{
+    $ventana = (int) IMPORTAR_VENTANA_MIN;
+    $maximo = (int) IMPORTAR_MAX_POR_HORA;
+    $stmt = $conn->prepare("UPDATE usuarios SET
+            importaciones_cuenta = IF(importaciones_desde IS NULL OR importaciones_desde < DATE_SUB(NOW(), INTERVAL ? MINUTE), 1, importaciones_cuenta + 1),
+            importaciones_desde = IF(importaciones_desde IS NULL OR importaciones_desde < DATE_SUB(NOW(), INTERVAL ? MINUTE), NOW(), importaciones_desde)
+        WHERE id_usuario = ? AND (importaciones_desde IS NULL OR importaciones_desde < DATE_SUB(NOW(), INTERVAL ? MINUTE) OR importaciones_cuenta < ?)");
+    $stmt->bind_param("iiiii", $ventana, $ventana, $usuarioId, $ventana, $maximo);
+    $stmt->execute();
+    $ok = $stmt->affected_rows > 0;
+    $stmt->close();
+    if ($ok) {
+        return 0;
+    }
+    $q = $conn->prepare("SELECT GREATEST(1, TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(importaciones_desde, INTERVAL ? MINUTE))) FROM usuarios WHERE id_usuario = ?");
+    $q->bind_param("ii", $ventana, $usuarioId);
+    $q->execute();
+    $min = (int) ($q->get_result()->fetch_row()[0] ?? 1);
+    $q->close();
+    return max(1, $min);
+}
+
+/**
+ * Estado del cupo de importaciones del usuario para mostrarlo en pantalla: cuantas lleva en la ventana
+ * vigente, el maximo, si ya lo agoto y a que hora (hora de la base de datos, HH:MM) y en cuantos minutos
+ * se libera.
+ */
+function importacion_estado(mysqli $conn, int $usuarioId): array
+{
+    $ventana = (int) IMPORTAR_VENTANA_MIN;
+    $maximo = (int) IMPORTAR_MAX_POR_HORA;
+    $q = $conn->prepare("SELECT importaciones_cuenta, DATE_FORMAT(DATE_ADD(importaciones_desde, INTERVAL ? MINUTE), '%H:%i'),
+            GREATEST(1, TIMESTAMPDIFF(MINUTE, NOW(), DATE_ADD(importaciones_desde, INTERVAL ? MINUTE)))
+        FROM usuarios WHERE id_usuario = ? AND importaciones_desde IS NOT NULL AND importaciones_desde >= DATE_SUB(NOW(), INTERVAL ? MINUTE)");
+    $q->bind_param("iiii", $ventana, $ventana, $usuarioId, $ventana);
+    $q->execute();
+    $f = $q->get_result()->fetch_row();
+    $q->close();
+    $usadas = $f ? (int) $f[0] : 0;
+    return ['usadas' => $usadas, 'maximo' => $maximo, 'agotado' => $usadas >= $maximo, 'hora' => $f ? (string) $f[1] : '', 'minutos' => $f ? (int) $f[2] : 0];
+}

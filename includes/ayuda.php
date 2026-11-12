@@ -130,7 +130,7 @@ function ayuda_secciones(): array
               <li>Escriba un registro por fila, desde la fila 2, <b>sin cambiar los encabezados</b> de la fila 1. Guárdelo como Excel (.xlsx) o como CSV.</li>
               <li>Elija el módulo, seleccione el archivo y haga clic en <b>Importar</b>.</li>
             </ol>
-            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
+            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
     }
 
     if ($admin) {

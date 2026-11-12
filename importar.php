@@ -53,6 +53,8 @@ if ($_POST && isset($_POST['importar'])) {
         $error = "El archivo pesa demasiado: el máximo es de " . IMPORTAR_MAX_MB . " MB. Divídelo en varios archivos más pequeños.";
     } elseif (empty($_FILES['archivo']['tmp_name']) || $_FILES['archivo']['error'] !== UPLOAD_ERR_OK) {
         $error = "Selecciona un archivo de Excel (.xlsx) o CSV.";
+    } elseif (importacion_reservar($conn, (int) $_SESSION['usuario_id']) > 0) {
+        // sin cupo: el aviso con la hora de regreso se muestra mas abajo (importacion_estado)
     } else {
         $m = $modulos[$moduloSel];
         $columnas = $m['columnas'];
@@ -174,10 +176,17 @@ if ($_POST && isset($_POST['importar'])) {
 
   <main>
     <h1>Importar registros desde Excel o CSV</h1>
-    <p class="subtitle" style="margin: -4px 0 14px;">Cada archivo puede pesar hasta <?= (int) IMPORTAR_MAX_MB ?> MB y tener hasta <?= number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') ?> filas con datos; si es más grande, divídelo en varios archivos.</p>
+    <p class="subtitle" style="margin: -4px 0 14px;">Cada archivo puede pesar hasta <?= (int) IMPORTAR_MAX_MB ?> MB y tener hasta <?= number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') ?> filas con datos; si es más grande, divídelo en varios archivos. Cada usuario puede importar hasta <?= (int) IMPORTAR_MAX_POR_HORA ?> archivos por hora.</p>
 
     <?php if ($error): ?>
       <p class="auth-error" style="margin-bottom: 16px;"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
+
+    <?php $cupo = importacion_estado($conn, (int) $_SESSION['usuario_id']); ?>
+    <?php if ($cupo['agotado']): ?>
+      <p class="auth-error" role="alert" style="margin-bottom: 16px;">Llegaste al límite de <?= (int) $cupo['maximo'] ?> importaciones por hora y por ahora no puedes subir más archivos. Podrás volver a importar a las <b><?= htmlspecialchars($cupo['hora']) ?></b> (en <?= (int) $cupo['minutos'] ?> minuto(s)).</p>
+    <?php elseif ($cupo['usadas'] > 0): ?>
+      <p class="pending-notice" style="margin-bottom: 16px;">Llevas <?= (int) $cupo['usadas'] ?> de <?= (int) $cupo['maximo'] ?> importaciones permitidas por hora. El contador se reinicia a las <b><?= htmlspecialchars($cupo['hora']) ?></b>.</p>
     <?php endif; ?>
 
     <?php if ($resumen): ?>
@@ -197,8 +206,8 @@ if ($_POST && isset($_POST['importar'])) {
           <?php endforeach; ?>
         </select>
       </label>
-      <label>Archivo de Excel (.xlsx) o CSV<input type="file" name="archivo" accept=".xlsx,.csv" required></label>
-      <button type="submit" name="importar" value="1">Importar</button>
+      <label>Archivo de Excel (.xlsx) o CSV<input type="file" name="archivo" accept=".xlsx,.csv" required<?= $cupo['agotado'] ? ' disabled' : '' ?>></label>
+      <button type="submit" name="importar" value="1"<?= $cupo['agotado'] ? ' disabled title="Llegaste al límite de importaciones por hora"' : '' ?>>Importar</button>
     </form>
 
     <div class="table-card">

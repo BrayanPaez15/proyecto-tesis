@@ -11,6 +11,8 @@
  * aprobado; los siguientes se crean con rol de usuario y estado
  * pendiente: no pueden iniciar sesion hasta que un administrador los
  * apruebe (usuarios.php), y el administrador recibe una alerta (alertas.php).
+ * Para frenar los registros automaticos incluye una pregunta de suma y un campo
+ * trampa oculto (sitio_web) que solo llenan los bots.
  */
 require_once __DIR__ . '/includes/sesion.php';
 iniciar_sesion_segura();
@@ -39,6 +41,9 @@ $errorPersistente = false;
 $ipSolicitud = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
 if ($_POST) {
     csrf_verify();
+    // filtro contra bots: campo trampa que una persona no ve y una pregunta sencilla guardada en la sesion
+    $retoEsperado = $_SESSION['registro_reto'] ?? null;
+    unset($_SESSION['registro_reto']);
     $nombre = trim($_POST['nombre']);
     $correo = trim($_POST['correo']);
     $password = $_POST['password'];
@@ -46,7 +51,11 @@ if ($_POST) {
     $pregunta = trim($_POST['pregunta'] ?? '');
     $respuesta = trim($_POST['respuesta'] ?? '');
 
-    if ($nombre === '' || $correo === '' || $password === '' || $pregunta === '' || $respuesta === '') {
+    if (trim((string) ($_POST['sitio_web'] ?? '')) !== '') {
+        $error = "No se pudo enviar la solicitud. Intenta de nuevo.";
+    } elseif ($retoEsperado === null || trim((string) ($_POST['reto'] ?? '')) !== (string) $retoEsperado) {
+        $error = "La respuesta a la verificación no es correcta. Intenta con la nueva pregunta.";
+    } elseif ($nombre === '' || $correo === '' || $password === '' || $pregunta === '' || $respuesta === '') {
         $error = "Todos los campos son obligatorios.";
     } elseif (mb_strlen($motivo) < 15 || mb_strlen($motivo) > 500) {
         $error = "Cuéntale al administrador quién eres y por qué necesitas acceso (entre 15 y 500 caracteres).";
@@ -104,6 +113,11 @@ if ($_POST) {
         exit;
     }
 }
+
+// pregunta de verificacion nueva en cada vez que se muestra el formulario
+$retoA = random_int(2, 9);
+$retoB = random_int(2, 9);
+$_SESSION['registro_reto'] = (string) ($retoA + $retoB);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -146,6 +160,8 @@ if ($_POST) {
             </label>
             <label class="campo-ancho">Respuesta<input name="respuesta" required></label>
             <p class="auth-subtitle">La pregunta de seguridad sirve para recuperar tu contraseña si la olvidas.</p>
+            <label class="campo-ancho">Verificación: ¿cuánto es <?= $retoA ?> + <?= $retoB ?>?<input name="reto" required inputmode="numeric" autocomplete="off" maxlength="3"></label>
+            <div class="campo-trampa" aria-hidden="true"><label>No llenes este campo<input name="sitio_web" tabindex="-1" autocomplete="off"></label></div>
             <label class="check-label"><input type="checkbox" name="acepta_politica" value="1" required <?= !empty($_POST['acepta_politica']) ? 'checked' : '' ?>><span>He leído y acepto la <a href="politica.php" target="_blank" rel="noopener">política de tratamiento de datos personales</a> (versión <?= htmlspecialchars(POLITICA_VERSION) ?>).</span></label>
             <p class="pending-notice">Tu cuenta requiere la aprobación de un administrador antes de que puedas iniciar sesión.</p>
             <button>Solicitar cuenta</button>

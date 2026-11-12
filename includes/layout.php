@@ -43,6 +43,14 @@ function render_header(bool $mostrarVolver = true): void
     </div>
   </header>
     <?php
+    if (is_admin() && ($cola = cola_solicitudes($conn))):
+        ?>
+  <p class="aviso-cola<?= $cola['llena'] ? ' llena' : '' ?>" role="alert"><?= $cola['llena']
+      ? 'La cola de solicitudes está llena (' . $cola['pendientes'] . ' de ' . $cola['maximo'] . '): el registro no recibe más solicitudes hasta que apruebes o rechaces algunas.'
+      : 'Hay ' . $cola['pendientes'] . ' de ' . $cola['maximo'] . ' solicitudes de cuenta pendientes: cuando se llene, el registro dejará de recibir nuevas.' ?>
+    <a href="usuarios.php">Revisar solicitudes</a></p>
+    <?php
+    endif;
     render_ayuda();
 }
 
