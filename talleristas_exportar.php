@@ -17,8 +17,8 @@ require_admin();
 <head>
   <meta charset="UTF-8">
   <title>Talleristas - Descargar Excel - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 </head>
 
 <body>

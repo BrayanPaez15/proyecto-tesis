@@ -13,7 +13,8 @@ include "conexion.php";
 require_once "includes/roles.php";
 require_admin();
 
-$modulos = require "includes/modulos.php";
+require_once "includes/contactos.php";
+$modulos = modulos_def();
 
 $modulo = $_GET['modulo'] ?? '';
 if (!isset($modulos[$modulo])) {
@@ -28,10 +29,9 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde) || !preg_match('/^\d{4}-\d{2}-\
     exit('Rango de fechas no válido.');
 }
 
-$tabla = $modulos[$modulo]['tabla'];
 $columnas = $modulos[$modulo]['columnas'];
 
-$stmt = $conn->prepare("SELECT * FROM `$tabla` WHERE fecha_registro >= ? AND fecha_registro < DATE_ADD(?, INTERVAL 1 DAY) ORDER BY fecha_registro");
+$stmt = $conn->prepare("SELECT * FROM " . origen_modulo($modulo) . " WHERE m.fecha_registro >= ? AND m.fecha_registro < DATE_ADD(?, INTERVAL 1 DAY) ORDER BY m.fecha_registro");
 $stmt->bind_param("ss", $desde, $hasta);
 $stmt->execute();
 $resultado = $stmt->get_result();

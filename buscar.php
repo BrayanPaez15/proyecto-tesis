@@ -10,6 +10,7 @@
 require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
+require_once "includes/contactos.php";
 
 $modulos = modulos_permitidos(require "includes/modulos.php", 'ver');
 if (!$modulos) {
@@ -20,9 +21,9 @@ $resultados = [];
 
 if ($termino !== '') {
     $like = '%' . $termino . '%';
-    foreach ($modulos as $m) {
+    foreach ($modulos as $clave => $m) {
         $campo = $m['campo_busqueda'];
-        $stmt = $conn->prepare("SELECT * FROM `{$m['tabla']}` WHERE `$campo` LIKE ? ORDER BY `$campo` LIMIT 20");
+        $stmt = $conn->prepare("SELECT * FROM " . origen_modulo($clave) . " WHERE m.`$campo` LIKE ? ORDER BY m.`$campo` LIMIT 20");
         $stmt->bind_param("s", $like);
         $stmt->execute();
         $r = $stmt->get_result();
@@ -44,8 +45,8 @@ if ($termino !== '') {
 <head>
   <meta charset="UTF-8">
   <title>Búsqueda global - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 </head>
 
 <body>

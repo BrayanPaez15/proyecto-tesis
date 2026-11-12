@@ -27,7 +27,8 @@ function alerta_detalle(array $e): string
     $quien = "{$e['nombre']} ({$e['correo']})";
     switch ($e['tipo']) {
         case 'registro':
-            return "Nueva cuenta creada: $quien." . ($e['estado'] === 'pendiente' ? ' Pendiente de aprobación.' : '');
+            return "Nueva cuenta creada: $quien." . ($e['estado'] === 'pendiente' ? ' Pendiente de aprobación.' : '')
+                . (!empty($e['motivo']) ? ' Motivo: ' . $e['motivo'] : '');
         case 'intento_pendiente':
             return "$quien intentó iniciar sesión, pero su cuenta está " . ($e['estado'] === 'pendiente' ? 'pendiente de aprobación.' : 'rechazada.');
         default:
@@ -38,15 +39,15 @@ function alerta_detalle(array $e): string
 /** Eventos para el administrador dado, los sin leer primero, cada uno con su detalle y la marca sin_leer. */
 function alertas_eventos(mysqli $conn, int $adminId): array
 {
-    $stmt = $conn->prepare("SELECT e.tipo, e.usuario_id, e.nombre, e.correo, e.estado, e.fecha,
-            (e.fecha > COALESCE((SELECT alertas_vistas_hasta FROM usuarios WHERE id = ?), '1970-01-01 00:00:00')
+    $stmt = $conn->prepare("SELECT e.tipo, e.usuario_id, e.nombre, e.correo, e.estado, e.fecha, e.motivo,
+            (e.fecha > COALESCE((SELECT alertas_vistas_hasta FROM usuarios WHERE id_usuario = ?), '1970-01-01 00:00:00')
              AND (e.tipo = 'inicio_sesion' OR e.estado = 'pendiente')) AS sin_leer
         FROM (
-            SELECT 'registro' AS tipo, id AS usuario_id, nombre, correo, estado, creado_en AS fecha FROM usuarios WHERE rol <> 'admin'
+            SELECT 'registro' AS tipo, id_usuario AS usuario_id, nombre, correo, estado, creado_en AS fecha, motivo_solicitud AS motivo FROM usuarios WHERE rol <> 'admin'
             UNION ALL
-            SELECT 'intento_pendiente', id, nombre, correo, estado, ultimo_intento_pendiente FROM usuarios WHERE ultimo_intento_pendiente IS NOT NULL AND estado <> 'aprobado'
+            SELECT 'intento_pendiente', id_usuario, nombre, correo, estado, ultimo_intento_pendiente, NULL FROM usuarios WHERE ultimo_intento_pendiente IS NOT NULL AND estado <> 'aprobado'
             UNION ALL
-            SELECT 'inicio_sesion', id, nombre, correo, estado, ultimo_acceso FROM usuarios WHERE ultimo_acceso IS NOT NULL AND rol <> 'admin'
+            SELECT 'inicio_sesion', id_usuario, nombre, correo, estado, ultimo_acceso, NULL FROM usuarios WHERE ultimo_acceso IS NOT NULL AND rol <> 'admin'
         ) e
         ORDER BY sin_leer DESC, e.fecha DESC LIMIT 200");
     $stmt->bind_param("i", $adminId);
@@ -77,7 +78,7 @@ function alertas_pendientes(mysqli $conn, ?int $adminId = null): int
 /** Marca todo como leido para ese administrador (guarda el momento actual como marca de lectura). */
 function alertas_marcar_vistas(mysqli $conn, int $adminId): void
 {
-    $stmt = $conn->prepare("UPDATE usuarios SET alertas_vistas_hasta = NOW() WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE usuarios SET alertas_vistas_hasta = NOW() WHERE id_usuario = ?");
     $stmt->bind_param("i", $adminId);
     $stmt->execute();
     $stmt->close();

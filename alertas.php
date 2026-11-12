@@ -38,10 +38,10 @@ foreach ($eventos as $e) {
 <head>
   <meta charset="UTF-8">
   <title>Alertas - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
-  <script src="js/table-tools.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
+  <script src="js/table-tools.js?v=<?= @filemtime(__DIR__ . '/js/table-tools.js') ?>" defer></script>
 </head>
 
 <body>

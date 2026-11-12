@@ -21,6 +21,7 @@ iniciar_sesion_segura();
 sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
+require_once "includes/ayuda.php";
 require_once "includes/password.php";
 require_once "includes/correo.php";
 
@@ -43,7 +44,7 @@ if (RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_1'])) {
     csrf_verify();
     $correo = trim((string) ($_POST['correo'] ?? ''));
     // las fechas se calculan con el reloj de la base de datos (NOW()), no con el de PHP
-    $stmt = $conn->prepare("SELECT id, nombre, estado, (reset_enviado_en > DATE_SUB(NOW(), INTERVAL 2 MINUTE)) AS reciente FROM usuarios WHERE correo = ?");
+    $stmt = $conn->prepare("SELECT id_usuario AS id, nombre, estado, (reset_enviado_en > DATE_SUB(NOW(), INTERVAL 2 MINUTE)) AS reciente FROM usuarios WHERE correo = ?");
     $stmt->bind_param("s", $correo);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -52,7 +53,7 @@ if (RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_1'])) {
     if ($user && $user['estado'] === 'aprobado' && !$user['reciente']) {
         $token = bin2hex(random_bytes(32));
         $hash = hash('sha256', $token);
-        $upd = $conn->prepare("UPDATE usuarios SET reset_token_hash = ?, reset_expira = DATE_ADD(NOW(), INTERVAL 30 MINUTE), reset_enviado_en = NOW() WHERE id = ?");
+        $upd = $conn->prepare("UPDATE usuarios SET reset_token_hash = ?, reset_expira = DATE_ADD(NOW(), INTERVAL 30 MINUTE), reset_enviado_en = NOW() WHERE id_usuario = ?");
         $upd->bind_param("si", $hash, $user['id']);
         $upd->execute();
         $upd->close();
@@ -79,7 +80,7 @@ if (RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_1'])) {
 if (!RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_1'])) {
     csrf_verify();
     $correo = trim($_POST['correo']);
-    $stmt = $conn->prepare("SELECT id, pregunta_seguridad, bloqueado_hasta FROM usuarios WHERE correo = ?");
+    $stmt = $conn->prepare("SELECT id_usuario AS id, pregunta_seguridad, bloqueado_hasta FROM usuarios WHERE correo = ?");
     $stmt->bind_param("s", $correo);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -105,7 +106,7 @@ if (!RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_2'])) {
     $confirmar = $_POST['confirmar'];
     $id = (int) $_SESSION['recuperar_id'];
 
-    $stmt = $conn->prepare("SELECT correo, respuesta_seguridad_hash, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE id = ?");
+    $stmt = $conn->prepare("SELECT correo, respuesta_seguridad_hash, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE id_usuario = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -121,7 +122,7 @@ if (!RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_2'])) {
         if ($user) {
             $intentos = (int) $user['intentos_fallidos'] + 1;
             $bloqueo = $intentos >= 5 ? date('Y-m-d H:i:s', time() + 15 * 60) : null;
-            $upd = $conn->prepare("UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id = ?");
+            $upd = $conn->prepare("UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = ? WHERE id_usuario = ?");
             $upd->bind_param("isi", $intentos, $bloqueo, $id);
             $upd->execute();
             $upd->close();
@@ -138,7 +139,7 @@ if (!RECUPERAR_POR_CORREO && $_POST && isset($_POST['paso_2'])) {
         $paso = 2;
     } else {
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $upd = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
+        $upd = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = ?");
         $upd->bind_param("si", $hash, $id);
         $upd->execute();
         $upd->close();
@@ -157,10 +158,10 @@ $pregunta = $_SESSION['recuperar_pregunta'] ?? '';
 <head>
     <meta charset="UTF-8">
     <title>Recuperar contraseña - SIRAD</title>
-    <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/mensajes.js" defer></script>
-  <script src="js/password.js" defer></script>
+    <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/mensajes.js?v=<?= @filemtime(__DIR__ . '/js/mensajes.js') ?>" defer></script>
+  <script src="js/password.js?v=<?= @filemtime(__DIR__ . '/js/password.js') ?>" defer></script>
 </head>
 
 <body>
@@ -192,6 +193,8 @@ $pregunta = $_SESSION['recuperar_pregunta'] ?? '';
             <p class="auth-link"><a href="login.php">&larr; Volver a inicio de sesión</a></p>
         </form>
     </div>
+
+    <?php render_ayuda(); ?>
 
 </body>
 

@@ -2,11 +2,11 @@
 /**
  * Helpers para el sistema de etiquetas.
  *
- * Las etiquetas son transversales a los once modulos: registro_etiquetas
- * guarda (modulo, registro_id, etiqueta_id) en vez de una llave foranea
- * directa a cada tabla de dominio, ya que "registro_id" puede apuntar a
- * cualquiera de las once tablas segun el valor de "modulo".
+ * Las etiquetas son transversales a los once modulos: contacto_etiquetas une un
+ * contacto (id_contacto) con una etiqueta (id_etiqueta), con llaves foraneas a las
+ * dos tablas; como todos los actores viven en `contactos`, no hace falta indicar el modulo.
  */
+require_once __DIR__ . '/contactos.php';
 
 /** Etiquetas asignadas a cada registro de un modulo, indexadas por id (solo los ids dados, si se indican). */
 function etiquetas_por_registro(mysqli $conn, string $modulo, ?array $ids = null): array
@@ -14,15 +14,16 @@ function etiquetas_por_registro(mysqli $conn, string $modulo, ?array $ids = null
     if ($ids !== null && !$ids) {
         return [];
     }
-    $filtro = $ids !== null ? ' AND re.registro_id IN (' . implode(',', array_map('intval', $ids)) . ')' : '';
+    $filtro = $ids !== null
+        ? 'ce.id_contacto IN (' . implode(',', array_map('intval', $ids)) . ')'
+        : 'ce.id_contacto IN (SELECT c.id_contacto FROM ' . modulo_from($modulo) . ')';
     $stmt = $conn->prepare(
-        "SELECT re.registro_id, e.id, e.nombre, e.color
-         FROM registro_etiquetas re
-         JOIN etiquetas e ON e.id = re.etiqueta_id
-         WHERE re.modulo = ?$filtro
+        "SELECT ce.id_contacto AS registro_id, e.id_etiqueta AS id, e.nombre, e.color
+         FROM contacto_etiquetas ce
+         JOIN etiquetas e ON e.id_etiqueta = ce.id_etiqueta
+         WHERE $filtro
          ORDER BY e.nombre"
     );
-    $stmt->bind_param("s", $modulo);
     $stmt->execute();
     $resultado = $stmt->get_result();
 

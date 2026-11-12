@@ -58,7 +58,7 @@ function acceso_denegado(string $mensaje): void
 <head>
   <meta charset="UTF-8">
   <title>Acceso denegado - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/../css/styles.css') ?>">
 </head>
 
 <body>

@@ -26,7 +26,7 @@ if (isset($_POST['eliminar_id'])) {
     if ($idEliminar === (int) $_SESSION['usuario_id']) {
         $errorEliminar = "No puedes eliminar tu propia cuenta.";
     } else {
-        $stmt = $conn->prepare("SELECT rol FROM usuarios WHERE id = ?");
+        $stmt = $conn->prepare("SELECT rol FROM usuarios WHERE id_usuario = ?");
         $stmt->bind_param("i", $idEliminar);
         $stmt->execute();
         $objetivo = $stmt->get_result()->fetch_assoc();
@@ -40,7 +40,7 @@ if (isset($_POST['eliminar_id'])) {
         }
 
         if ($errorEliminar === "" && $objetivo) {
-            $stmt = $conn->prepare("DELETE FROM usuarios WHERE id = ?");
+            $stmt = $conn->prepare("DELETE FROM usuarios WHERE id_usuario = ?");
             $stmt->bind_param("i", $idEliminar);
             $stmt->execute();
             $stmt->close();
@@ -61,7 +61,7 @@ if (isset($_POST['cambiar_estado'])) {
     $nuevoEstado = $_POST['cambiar_estado'];
     $errorEstado = "";
 
-    $stmt = $conn->prepare("SELECT rol, estado FROM usuarios WHERE id = ?");
+    $stmt = $conn->prepare("SELECT rol, estado FROM usuarios WHERE id_usuario = ?");
     $stmt->bind_param("i", $idObjetivo);
     $stmt->execute();
     $objetivo = $stmt->get_result()->fetch_assoc();
@@ -72,7 +72,7 @@ if (isset($_POST['cambiar_estado'])) {
     } elseif ($idObjetivo === (int) $_SESSION['usuario_id']) {
         $errorEstado = "No puedes cambiar el estado de tu propia cuenta.";
     } elseif ($objetivo['rol'] === 'admin' && $objetivo['estado'] === 'aprobado' && $nuevoEstado !== 'aprobado') {
-        $otros = $conn->prepare("SELECT COUNT(*) AS total FROM usuarios WHERE rol = 'admin' AND estado = 'aprobado' AND id <> ?");
+        $otros = $conn->prepare("SELECT COUNT(*) AS total FROM usuarios WHERE rol = 'admin' AND estado = 'aprobado' AND id_usuario <> ?");
         $otros->bind_param("i", $idObjetivo);
         $otros->execute();
         if ((int) $otros->get_result()->fetch_assoc()['total'] === 0) {
@@ -82,7 +82,7 @@ if (isset($_POST['cambiar_estado'])) {
     }
 
     if ($errorEstado === "") {
-        $stmt = $conn->prepare("UPDATE usuarios SET estado = ? WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE usuarios SET estado = ? WHERE id_usuario = ?");
         $stmt->bind_param("si", $nuevoEstado, $idObjetivo);
         $stmt->execute();
         $stmt->close();
@@ -101,7 +101,7 @@ if (isset($_POST['permiso_importar'])) {
     csrf_verify();
     $idObjetivo = (int) ($_POST['usuario_id'] ?? 0);
     $valor = $_POST['permiso_importar'] === '1' ? 1 : 0;
-    $stmt = $conn->prepare("UPDATE usuarios SET puede_importar = ? WHERE id = ? AND rol <> 'admin'");
+    $stmt = $conn->prepare("UPDATE usuarios SET puede_importar = ? WHERE id_usuario = ? AND rol <> 'admin'");
     $stmt->bind_param("ii", $valor, $idObjetivo);
     $stmt->execute();
     $stmt->close();
@@ -109,7 +109,7 @@ if (isset($_POST['permiso_importar'])) {
     exit;
 }
 
-$r = $conn->query("SELECT u.id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos
+$r = $conn->query("SELECT u.id_usuario AS id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos, u.motivo_solicitud
     FROM usuarios u ORDER BY FIELD(u.estado, 'pendiente', 'aprobado', 'rechazado'), u.nombre");
 $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total'];
 ?>
@@ -119,10 +119,10 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
 <head>
   <meta charset="UTF-8">
   <title>Usuarios - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
-  <script src="js/table-tools.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
+  <script src="js/table-tools.js?v=<?= @filemtime(__DIR__ . '/js/table-tools.js') ?>" defer></script>
 </head>
 
 <body>
@@ -165,7 +165,11 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
             $esYo = (int) $u['id'] === (int) $_SESSION['usuario_id'];
           ?>
             <tr>
-              <td><?= htmlspecialchars($u['nombre']) ?></td>
+              <td><?= htmlspecialchars($u['nombre']) ?>
+                <?php if (!empty($u['motivo_solicitud'])): ?>
+                  <span class="motivo"><strong>Motivo:</strong> <?= htmlspecialchars($u['motivo_solicitud']) ?></span>
+                <?php endif; ?>
+              </td>
               <td><?= htmlspecialchars($u['correo']) ?></td>
               <td><span class="pill <?= $esAdminFila ? 'pill-admin' : '' ?>"><?= $esAdminFila ? 'Administrador' : 'Usuario' ?></span></td>
               <td>

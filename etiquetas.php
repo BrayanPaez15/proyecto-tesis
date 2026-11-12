@@ -5,7 +5,7 @@
  * Permite a un administrador crear y eliminar las etiquetas disponibles
  * para clasificar registros de cualquier modulo (nombre + color). Al
  * eliminar una etiqueta se desasigna automaticamente de todos los
- * registros (ON DELETE CASCADE en registro_etiquetas). Requiere sesion
+ * registros (ON DELETE CASCADE en contacto_etiquetas). Requiere sesion
  * activa (auth.php) y rol de administrador.
  */
 require "auth.php";
@@ -25,7 +25,7 @@ if ($_POST) {
         if ($nombre === '') {
             $error = "El nombre de la etiqueta es obligatorio.";
         } else {
-            $check = $conn->prepare("SELECT id FROM etiquetas WHERE nombre = ?");
+            $check = $conn->prepare("SELECT id_etiqueta FROM etiquetas WHERE nombre = ?");
             $check->bind_param("s", $nombre);
             $check->execute();
             $check->store_result();
@@ -45,7 +45,7 @@ if ($_POST) {
         }
     } elseif (isset($_POST['eliminar_id'])) {
         $idEliminar = (int) $_POST['eliminar_id'];
-        $stmt = $conn->prepare("DELETE FROM etiquetas WHERE id = ?");
+        $stmt = $conn->prepare("DELETE FROM etiquetas WHERE id_etiqueta = ?");
         $stmt->bind_param("i", $idEliminar);
         $stmt->execute();
         $stmt->close();
@@ -55,7 +55,7 @@ if ($_POST) {
 }
 
 $r = $conn->query(
-    "SELECT e.*, (SELECT COUNT(*) FROM registro_etiquetas re WHERE re.etiqueta_id = e.id) AS usos
+    "SELECT e.id_etiqueta AS id, e.nombre, e.color, (SELECT COUNT(*) FROM contacto_etiquetas ce WHERE ce.id_etiqueta = e.id_etiqueta) AS usos
      FROM etiquetas e ORDER BY e.nombre"
 );
 ?>
@@ -65,9 +65,9 @@ $r = $conn->query(
 <head>
   <meta charset="UTF-8">
   <title>Etiquetas - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
 </head>
 
 <body>

@@ -3,11 +3,12 @@
  * Agenda de disponibilidad compartida por los modulos.
  *
  * Guarda los horarios (dia, hora de inicio y de fin, disponible u ocupado,
- * nota) de un registro en la columna `disponibilidad` (JSON) de su propia fila,
- * en las tablas artistas y talleristas. No hay una tabla aparte: la agenda es
+ * nota) de un registro en la columna `disponibilidad` (JSON) de su propia fila de contactos,
+ * (contactos.disponibilidad) de los artistas y talleristas. No hay una tabla aparte: la agenda es
  * parte del registro y se elimina con el. El formato es el mismo en ambos
  * modulos y lo valida agenda_leer_post().
  */
+require_once __DIR__ . '/contactos.php';
 
 function agenda_dias(): array
 {
@@ -25,11 +26,10 @@ function agenda_tipos(): array
 /** Tabla de cada modulo con agenda (lista blanca): la agenda se guarda en su columna `disponibilidad` (JSON). */
 function agenda_tabla(string $modulo): string
 {
-    $tablas = ['artistas' => 'artistas', 'talleristas' => 'talleristas'];
-    if (!isset($tablas[$modulo])) {
+    if (empty(modulo_def($modulo)['agenda'])) {
         throw new InvalidArgumentException('Modulo sin agenda');
     }
-    return $tablas[$modulo];
+    return 'contactos';
 }
 
 /** Decodifica el JSON de la columna disponibilidad a filas [dia, desde, hasta, tipo, nota], en orden de semana y hora. */
@@ -53,7 +53,7 @@ function agenda_decodificar(?string $json): array
 function agenda_obtener(mysqli $conn, string $modulo, int $id): array
 {
     $tabla = agenda_tabla($modulo);
-    $stmt = $conn->prepare("SELECT disponibilidad FROM `$tabla` WHERE id = ?");
+    $stmt = $conn->prepare("SELECT m.disponibilidad FROM " . origen_modulo($modulo) . " WHERE m.id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $fila = $stmt->get_result()->fetch_assoc();
@@ -68,8 +68,8 @@ function agenda_por_registro(mysqli $conn, string $modulo, ?array $ids = null): 
         return [];
     }
     $tabla = agenda_tabla($modulo);
-    $filtro = $ids !== null ? ' AND id IN (' . implode(',', array_map('intval', $ids)) . ')' : '';
-    $res = $conn->query("SELECT id, disponibilidad FROM `$tabla` WHERE disponibilidad IS NOT NULL$filtro");
+    $filtro = $ids !== null ? ' AND m.id IN (' . implode(',', array_map('intval', $ids)) . ')' : '';
+    $res = $conn->query("SELECT m.id, m.disponibilidad FROM " . origen_modulo($modulo) . " WHERE m.disponibilidad IS NOT NULL$filtro");
     $mapa = [];
     while ($f = $res->fetch_assoc()) {
         $filas = agenda_decodificar($f['disponibilidad']);
@@ -149,7 +149,7 @@ function agenda_guardar(mysqli $conn, string $modulo, int $id, array $filas, int
         $limpias[] = ['dia' => $f['dia'], 'desde' => $f['desde'], 'hasta' => $f['hasta'], 'tipo' => $f['tipo'], 'nota' => $f['nota']];
     }
     $json = $limpias ? json_encode($limpias, JSON_UNESCAPED_UNICODE) : null;
-    $stmt = $conn->prepare("UPDATE `$tabla` SET disponibilidad = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE contactos SET disponibilidad = ? WHERE id_contacto = ?");
     $stmt->bind_param("si", $json, $id);
     $stmt->execute();
     $stmt->close();
@@ -203,6 +203,6 @@ function agenda_render_form(array $filas): void
       <template class="agenda-template"><?php agenda_fila_html([]); ?></template>
       <button type="button" class="agenda-add">+ Agregar horario</button>
     </fieldset>
-    <script src="js/agenda.js" defer></script>
+    <script src="js/agenda.js?v=<?= @filemtime(__DIR__ . '/../js/agenda.js') ?>" defer></script>
     <?php
 }

@@ -2,7 +2,7 @@
 /**
  * Modulo Asocajas - Registrar.
  *
- * Formulario de registro y edicion para la tabla `asocajas`. Inserta un
+ * Formulario de registro y edicion del modulo (contacto + detalle). Inserta un
  * nuevo registro (validando formato de correo y evitando duplicados por
  * correo) o actualiza uno existente (parametro GET "id", solo permitido
  * a administradores) mediante sentencias preparadas, dejando rastro de
@@ -13,78 +13,10 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
-require_once "includes/duplicados.php";
+require_once "includes/contactos.php";
 require_permiso('asocajas', 'registrar');
 
-$editando = null;
-if (isset($_GET['id'])) {
-  require_admin();
-  $stmt = $conn->prepare("SELECT * FROM asocajas WHERE id = ?");
-  $id = (int) $_GET['id'];
-  $stmt->bind_param("i", $id);
-  $stmt->execute();
-  $editando = $stmt->get_result()->fetch_assoc();
-  $stmt->close();
-}
-
-$error = "";
-if ($_POST) {
-  csrf_verify();
-  $usuarioId = (int) $_SESSION['usuario_id'];
-  normalizar_unicos();
-
-  $esEdicion = !empty($_POST['id']);
-  if ($esEdicion) {
-    require_admin();
-    $id = (int) $_POST['id'];
-    $error = error_duplicado($conn, 'asocajas', $id);
-    if ($error === '') {
-      $stmt = $conn->prepare("UPDATE asocajas SET caja = ?, departamento = ?, cargo = ?, contacto = ?, telefono = ?, direccion = ?, correo = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
-      $stmt->bind_param("sssssssii", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId, $id);
-      try {
-        $stmt->execute();
-        $stmt->close();
-        header("Location: asocajas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
-        exit;
-      } catch (mysqli_sql_exception $e) {
-        $error = mensaje_duplicado($e) ?? throw $e;
-      }
-    }
-  }
-
-  $correo = trim($_POST['correo'] ?? '');
-  if ($esEdicion) {
-    // la edicion ya se resolvio arriba; si hubo un error se vuelve a mostrar el formulario
-  } elseif ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-    $error = "El correo no tiene un formato válido.";
-  } elseif ($correo !== '') {
-    $check = $conn->prepare("SELECT id FROM asocajas WHERE correo = ?");
-    $check->bind_param("s", $correo);
-    $check->execute();
-    $check->store_result();
-    if ($check->num_rows > 0) {
-      $error = "Ya existe un registro con este correo en este módulo.";
-    }
-    $check->close();
-  }
-
-  if (!$esEdicion && $error === '') {
-    $error = error_duplicado($conn, 'asocajas');
-  }
-
-  if (!$esEdicion && $error === '') {
-    $stmt = $conn->prepare("INSERT INTO asocajas (caja, departamento, cargo, contacto, telefono, direccion, correo, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssssi", $_POST['caja'], $_POST['departamento'], $_POST['cargo'], $_POST['contacto'], $_POST['telefono'], $_POST['direccion'], $_POST['correo'], $usuarioId);
-    try {
-      $stmt->execute();
-      $stmt->close();
-      header("Location: " . (puede_modulo('asocajas', 'ver') ? 'asocajas_registros.php' : 'asocajas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
-      exit;
-    } catch (mysqli_sql_exception $e) {
-      $error = mensaje_duplicado($e) ?? throw $e;
-    }
-  }
-}
+[$editando, $error, $valores, $agendaFilas] = modulo_procesar($conn, 'asocajas');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -92,9 +24,9 @@ if ($_POST) {
 <head>
   <meta charset="UTF-8">
   <title>Asocajas - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
 </head>
 
 <body>
@@ -119,13 +51,13 @@ if ($_POST) {
       <?php if ($editando): ?>
         <input type="hidden" name="id" value="<?= (int) $editando['id'] ?>">
       <?php endif; ?>
-      <label>Caja<input name="caja" required value="<?= htmlspecialchars($editando['caja'] ?? '') ?>"></label>
-      <label>Departamento<input name="departamento" value="<?= htmlspecialchars($editando['departamento'] ?? '') ?>"></label>
-      <label>Cargo<input name="cargo" value="<?= htmlspecialchars($editando['cargo'] ?? '') ?>"></label>
-      <label>Contacto<input name="contacto" value="<?= htmlspecialchars($editando['contacto'] ?? '') ?>"></label>
-      <label>Teléfono<input name="telefono" value="<?= htmlspecialchars($editando['telefono'] ?? '') ?>"></label>
-      <label>Dirección<input name="direccion" value="<?= htmlspecialchars($editando['direccion'] ?? '') ?>"></label>
-      <label>Correo<input name="correo" type="email" value="<?= htmlspecialchars($editando['correo'] ?? '') ?>"></label>
+      <label>Caja<input name="caja" required value="<?= htmlspecialchars($valores['caja'] ?? '') ?>"></label>
+      <label>Departamento<input name="departamento" value="<?= htmlspecialchars($valores['departamento'] ?? '') ?>"></label>
+      <label>Cargo<input name="cargo" value="<?= htmlspecialchars($valores['cargo'] ?? '') ?>"></label>
+      <label>Contacto<input name="contacto" value="<?= htmlspecialchars($valores['contacto'] ?? '') ?>"></label>
+      <label>Teléfono<input name="telefono" value="<?= htmlspecialchars($valores['telefono'] ?? '') ?>"></label>
+      <label>Dirección<input name="direccion" value="<?= htmlspecialchars($valores['direccion'] ?? '') ?>"></label>
+      <label>Correo<input name="correo" type="email" value="<?= htmlspecialchars($valores['correo'] ?? '') ?>"></label>
       <button><?= $editando ? 'Actualizar' : 'Guardar' ?></button>
     </form>
   </main>

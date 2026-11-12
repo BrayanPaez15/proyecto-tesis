@@ -2,7 +2,7 @@
 /**
  * Modulo Instituciones Educativas - Ver registros.
  *
- * Consulta y muestra todos los registros de la tabla `instituciones_e` en una
+ * Consulta y muestra todos los registros del modulo en una
  * tabla HTML, con la salida escapada (htmlspecialchars). Los botones
  * de editar/eliminar solo se muestran a administradores (require_admin
  * protege tambien el borrado del lado del servidor). Incluye busqueda
@@ -20,11 +20,7 @@ require_once "includes/etiquetas.php";
 if (isset($_POST['eliminar_id'])) {
     csrf_verify();
     require_admin();
-    $stmt = $conn->prepare("DELETE FROM instituciones_e WHERE id = ?");
-    $id = (int) $_POST['eliminar_id'];
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $stmt->close();
+    registro_eliminar($conn, 'instituciones-e', (int) $_POST['eliminar_id']);
     header("Location: instituciones-e_registros.php?msg=" . rawurlencode("Registro eliminado") . "&tipo=success");
     exit;
 }
@@ -41,9 +37,9 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'instituciones-e', $idsPag
 <head>
   <meta charset="UTF-8">
   <title>Instituciones Educativas - Registros - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
 </head>
 
 <body>

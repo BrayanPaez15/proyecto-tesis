@@ -16,6 +16,7 @@ require_once "includes/layout.php";
 require_once "includes/csrf.php";
 require_once "includes/duplicados.php";
 require_once "includes/importacion.php";
+require_once "includes/contactos.php";
 require_once "includes/xlsx.php";
 require_importar();
 
@@ -47,6 +48,9 @@ if ($_POST && isset($_POST['importar'])) {
 
     if (!isset($modulos[$moduloSel])) {
         $error = "Selecciona un módulo válido.";
+    } elseif (in_array($_FILES['archivo']['error'] ?? 0, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+        || (!empty($_FILES['archivo']['tmp_name']) && filesize($_FILES['archivo']['tmp_name']) > IMPORTAR_MAX_MB * 1024 * 1024)) {
+        $error = "El archivo pesa demasiado: el máximo es de " . IMPORTAR_MAX_MB . " MB. Divídelo en varios archivos más pequeños.";
     } elseif (empty($_FILES['archivo']['tmp_name']) || $_FILES['archivo']['error'] !== UPLOAD_ERR_OK) {
         $error = "Selecciona un archivo de Excel (.xlsx) o CSV.";
     } else {
@@ -84,26 +88,25 @@ if ($_POST && isset($_POST['importar'])) {
                 $error = "Ninguna columna del archivo coincide con las del módulo. Descarga la plantilla e inténtalo de nuevo.";
             } else {
                 $columnasDestino = array_values(array_unique($mapaColumnas));
-                $placeholders = implode(",", array_fill(0, count($columnasDestino), "?"));
-                $columnasSql = implode(",", array_map(fn($c) => "`$c`", $columnasDestino));
-                $stmt = $conn->prepare(
-                    "INSERT INTO `{$m['tabla']}` ($columnasSql, creado_por) VALUES ($placeholders, ?)"
-                );
-
-                $unicas = array_values(array_intersect(columnas_unicas($m['tabla']), $columnasDestino));
-                $checks = [];
-                foreach ($unicas as $u) {
-                    $checks[$u] = $conn->prepare("SELECT id FROM `{$m['tabla']}` WHERE `$u` = ? LIMIT 1");
-                }
+                $unicas = array_values(array_intersect(columnas_unicas($moduloSel), $columnasDestino));
 
                 $importados = 0;
                 $omitidos = 0;
+                $filasConDatos = 0;
+                $limiteSuperado = false;
+                // todo el archivo se importa en una sola transaccion: si pasa el limite de filas no se guarda nada
+                tx_iniciar($conn);
+                try {
                 while ($filasArchivo->valid()) {
                     $fila = $filasArchivo->current();
                     $filasArchivo->next();
                     $noVacia = array_filter($fila, fn($v) => trim((string) $v) !== '');
                     if (count($noVacia) === 0) {
                         continue;
+                    }
+                    if (++$filasConDatos > IMPORTAR_MAX_FILAS) {
+                        $limiteSuperado = true;
+                        break;
                     }
 
                     $valores = [];
@@ -114,14 +117,9 @@ if ($_POST && isset($_POST['importar'])) {
 
                     $duplicado = false;
                     foreach ($unicas as $u) {
-                        if ($valores[$u] === '') {
-                            $valores[$u] = null;
-                        } else {
-                            $checks[$u]->execute([$valores[$u]]);
-                            if ($checks[$u]->get_result()->num_rows > 0) {
-                                $duplicado = true;
-                                break;
-                            }
+                        if ($valores[$u] !== '' && existe_valor_unico($conn, $moduloSel, $u, $valores[$u])) {
+                            $duplicado = true;
+                            break;
                         }
                     }
                     if ($duplicado) {
@@ -129,10 +127,8 @@ if ($_POST && isset($_POST['importar'])) {
                         continue;
                     }
 
-                    $params = array_values($valores);
-                    $params[] = (int) $_SESSION['usuario_id'];
                     try {
-                        $stmt->execute($params);
+                        registro_guardar($conn, $moduloSel, $valores, (int) $_SESSION['usuario_id']);
                         $importados++;
                     } catch (mysqli_sql_exception $e) {
                         if (mensaje_duplicado($e) === null) {
@@ -142,12 +138,21 @@ if ($_POST && isset($_POST['importar'])) {
                     }
                 }
 
-                $stmt->close();
-                foreach ($checks as $chk) {
-                    $chk->close();
+                } catch (Throwable $falla) {
+                    tx_revertir($conn);
+                    throw $falla;
+                }
+                if ($limiteSuperado) {
+                    tx_revertir($conn);
+                } else {
+                    tx_confirmar($conn);
                 }
 
-                $resumen = ['importados' => $importados, 'omitidos' => $omitidos];
+                if ($limiteSuperado) {
+                    $error = "El archivo tiene más de " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas con datos. No se importó ningún registro: divídelo en archivos de hasta " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas e impórtalos uno por uno.";
+                } else {
+                    $resumen = ['importados' => $importados, 'omitidos' => $omitidos];
+                }
             }
         }
     }
@@ -159,8 +164,8 @@ if ($_POST && isset($_POST['importar'])) {
 <head>
   <meta charset="UTF-8">
   <title>Importar registros - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 </head>
 
 <body>
@@ -169,6 +174,7 @@ if ($_POST && isset($_POST['importar'])) {
 
   <main>
     <h1>Importar registros desde Excel o CSV</h1>
+    <p class="subtitle" style="margin: -4px 0 14px;">Cada archivo puede pesar hasta <?= (int) IMPORTAR_MAX_MB ?> MB y tener hasta <?= number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') ?> filas con datos; si es más grande, divídelo en varios archivos.</p>
 
     <?php if ($error): ?>
       <p class="auth-error" style="margin-bottom: 16px;"><?= htmlspecialchars($error) ?></p>

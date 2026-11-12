@@ -13,6 +13,7 @@ iniciar_sesion_segura();
 sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
+require_once "includes/ayuda.php";
 require_once "includes/password.php";
 
 if (isset($_SESSION['usuario_id'])) {
@@ -24,7 +25,7 @@ $token = (string) ($_POST['token'] ?? $_GET['token'] ?? '');
 $usuarioId = 0;
 if (preg_match('/^[0-9a-f]{64}$/', $token)) {
     $hash = hash('sha256', $token);
-    $stmt = $conn->prepare("SELECT id FROM usuarios WHERE reset_token_hash = ? AND reset_expira > NOW() AND estado = 'aprobado'");
+    $stmt = $conn->prepare("SELECT id_usuario AS id FROM usuarios WHERE reset_token_hash = ? AND reset_expira > NOW() AND estado = 'aprobado'");
     $stmt->bind_param("s", $hash);
     $stmt->execute();
     $fila = $stmt->get_result()->fetch_assoc();
@@ -38,7 +39,7 @@ if ($usuarioId && $_POST && isset($_POST['restablecer'])) {
     $password = (string) ($_POST['password'] ?? '');
     $confirmar = (string) ($_POST['confirmar'] ?? '');
 
-    $stmtC = $conn->prepare("SELECT correo FROM usuarios WHERE id = ?");
+    $stmtC = $conn->prepare("SELECT correo FROM usuarios WHERE id_usuario = ?");
     $stmtC->bind_param("i", $usuarioId);
     $stmtC->execute();
     $correoUsuario = (string) ($stmtC->get_result()->fetch_row()[0] ?? '');
@@ -51,7 +52,7 @@ if ($usuarioId && $_POST && isset($_POST['restablecer'])) {
     } else {
         $nuevo = password_hash($password, PASSWORD_DEFAULT);
         // el token se invalida en la misma sentencia: dos envios simultaneos no pueden usarlo dos veces
-        $upd = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL, reset_token_hash = NULL, reset_expira = NULL WHERE id = ? AND reset_token_hash = ? AND reset_expira > NOW()");
+        $upd = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL, reset_token_hash = NULL, reset_expira = NULL WHERE id_usuario = ? AND reset_token_hash = ? AND reset_expira > NOW()");
         $upd->bind_param("sis", $nuevo, $usuarioId, $hash);
         $upd->execute();
         $cambiado = $upd->affected_rows === 1;
@@ -70,10 +71,10 @@ if ($usuarioId && $_POST && isset($_POST['restablecer'])) {
 <head>
     <meta charset="UTF-8">
     <title>Restablecer contraseña - SIRAD</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="js/animations.js" defer></script>
-    <script src="js/mensajes.js" defer></script>
-    <script src="js/password.js" defer></script>
+    <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+    <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+    <script src="js/mensajes.js?v=<?= @filemtime(__DIR__ . '/js/mensajes.js') ?>" defer></script>
+    <script src="js/password.js?v=<?= @filemtime(__DIR__ . '/js/password.js') ?>" defer></script>
 </head>
 
 <body>
@@ -101,6 +102,8 @@ if ($usuarioId && $_POST && isset($_POST['restablecer'])) {
             <p class="auth-link"><a href="login.php">&larr; Volver a inicio de sesión</a></p>
         </form>
     </div>
+
+    <?php render_ayuda(); ?>
 
 </body>
 

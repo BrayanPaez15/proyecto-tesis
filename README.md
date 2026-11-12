@@ -13,13 +13,15 @@ Proyecto de grado (Ingeniería de Sistemas, UNIMINUTO). Uso restringido al conte
 - **Alertas para el administrador** (`alertas.php`): el encabezado muestra cuántas alertas hay sin leer. Se avisa de las cuentas nuevas (con botones Aprobar y Rechazar), de los inicios de sesión de usuarios y de los intentos de entrar con una cuenta aún no aprobada. No hay una tabla de alertas: se calculan desde `usuarios` (`creado_en`, `ultimo_acceso`, `ultimo_intento_pendiente`) y cada administrador tiene su marca de lectura (`alertas_vistas_hasta`); se muestra el último evento de cada usuario.
 - **CRUD por módulo**: cada uno de los once módulos tiene su propio formulario de registro/edición y su vista de consulta, con búsqueda y paginación del lado del cliente.
 - **Búsqueda global** (`buscar.php`): busca un término en los once módulos a la vez.
-- **Importación masiva** (`importar.php`): carga registros desde un libro de Excel (.xlsx) o un CSV (cualquier separador: coma, punto y coma o tabulador; UTF-8 o Windows-1252), con una plantilla de Excel descargable por módulo (una columna por campo, celdas de texto) y detección de duplicados (correo, NIT o cédula). La pueden usar los administradores y los usuarios a quienes un administrador les asigne el permiso de importación (columna `puede_importar`, desde `usuarios.php` o `usuario_editar.php`); además, un usuario solo importa a los módulos donde tiene permiso de **Registrar**.
+- **Importación masiva** (`importar.php`): carga registros desde un libro de Excel (.xlsx) o un CSV (cualquier separador: coma, punto y coma o tabulador; UTF-8 o Windows-1252), con un máximo de 5 MB y 5.000 filas por archivo (`IMPORTAR_MAX_MB`, `IMPORTAR_MAX_FILAS`; si lo supera no se importa nada) y con una plantilla de Excel descargable por módulo (una columna por campo, celdas de texto) y detección de duplicados (correo, NIT o cédula). La pueden usar los administradores y los usuarios a quienes un administrador les asigne el permiso de importación (columna `puede_importar`, desde `usuarios.php` o `usuario_editar.php`); además, un usuario solo importa a los módulos donde tiene permiso de **Registrar**.
 - **Agenda de disponibilidad** (Artistas y Talleristas): cada registro puede tener varios horarios con día, hora de inicio y fin, tipo (disponible u ocupado) y nota. Se guardan en la columna `disponibilidad` (JSON) de la propia fila, con el mismo formato en ambos módulos, de modo que no hay una tabla aparte y la agenda se elimina junto con el registro. Los horarios de un mismo día no pueden cruzarse. El campo de texto `agenda` de Artistas se conserva como «Agenda (notas)».
 - **Exportación a Excel** (`exportar.php`): descarga los registros de un módulo filtrados por rango de fechas.
 - **Etiquetas** (`etiquetas.php`): quien tiene permiso de **Registrar** en un módulo clasifica sus registros con etiquetas de color; crear y eliminar etiquetas del catálogo es exclusivo del administrador.
 - **Reportes** (`reportes.php`): panel solo para administradores con gráficas de barras (registros por módulo, altas por mes, usuarios por rol y etiquetas más usadas).
 - **Administración de usuarios** (`usuarios.php`, `usuario_editar.php`): el administrador aprueba, rechaza o revoca cuentas, asigna el permiso de importación, edita nombre, correo y rol, desbloquea cuentas, restablece contraseñas y elimina usuarios, con salvaguardas que impiden quitar el rol o el acceso al único administrador y cambiar el estado de la propia cuenta.
 - **Auditoría**: cada registro guarda quién lo creó y quién lo modificó por última vez (`creado_por`, `actualizado_por`, `actualizado_en`).
+- **Manual de uso dentro del sistema**: un botón «Manual» fijo en la esquina inferior derecha de todas las pantallas (con un botón verde de WhatsApp al lado que abre el chat con el administrador, `CONTACTO_WHATSAPP`) abre un panel con el manual (`includes/ayuda.php`, `js/ayuda.js`): se abre en la sección de la pantalla actual, tiene buscador, se cierra con Esc y muestra solo las secciones que corresponden al rol de quien lo mira. Se puede apagar con `AYUDA_ACTIVA = false`.
+- **Solicitudes de cuenta**: el formulario pide un motivo (15 a 500 caracteres) que el administrador ve junto a la solicitud (panel de usuarios, edición y alertas); se limitan a 3 por conexión cada 60 minutos y a 30 pendientes en total, y los avisos de límite, de rechazo y de cuenta eliminada (también si la sesión estaba abierta) indican que debe comunicarse con el administrador por WhatsApp, con enlace directo. Se ajustan con `SOLICITUDES_MAX_POR_IP`, `SOLICITUDES_VENTANA_MIN`, `SOLICITUDES_MAX_PENDIENTES`, `CONTACTO_WHATSAPP`, `CONTACTO_CORREO` y `CONTACTO_TELEFONO` (en `config.php` o `config.local.php`; sin WhatsApp ni correo configurados se usa el correo del administrador más antiguo).
 - **Sin duplicados**: en cada módulo no se repite el correo, ni el NIT (Instituciones Educativas y Editoriales) ni la cédula (Directivos); la regla está en la base de datos (llaves `UNIQUE`) y la aplicación avisa con un mensaje claro, también al editar y al importar.
 - **Contraseñas seguras**: toda contraseña nueva (registro, recuperación y restablecimiento por un administrador) debe tener de 8 a 64 caracteres con mayúscula, minúscula, número y símbolo, no ser una clave común ni contener el usuario del correo (`includes/password.php`); las pantallas muestran los requisitos y un medidor de nivel (`js/password.js`). Las contraseñas ya guardadas no se modifican.
 - **Listas paginadas**: cada módulo muestra 50 registros por página con búsqueda en el servidor, para que siga rápido con decenas de miles de registros.
@@ -39,7 +41,7 @@ flowchart LR
         Includes["includes/ (layout, csrf, roles, modulos)"]
         Herramientas["buscar.php · importar.php · exportar.php"]
     end
-    DB[("MySQL — base de datos `directorio`\n14 tablas: 11 de dominio + usuarios + etiquetas + registro_etiquetas")]
+    DB[("MySQL — base de datos `directorio`\n12 tablas: contactos + tipos_actor + 7 detalle_* + usuarios + etiquetas + contacto_etiquetas")]
 
     UI -->|HTTP| Servidor
     Auth --> DB
@@ -60,7 +62,7 @@ flowchart LR
 
 ```
 proyecto/
-├── includes/          # layout.php, csrf.php, roles.php, modulos.php, paginacion.php, duplicados.php, correo.php, password.php, xlsx.php, importacion.php (compartidos)
+├── includes/          # contactos.php (acceso a los datos de los módulos), ayuda.php, contacto.php, layout.php, csrf.php, roles.php, modulos.php, paginacion.php, duplicados.php, correo.php, password.php, xlsx.php, importacion.php (compartidos)
 ├── css/, js/           # estilos y animaciones
 ├── db/                 # schema.sql y backup.php (respaldo por CLI)
 ├── docs/               # diagrama entidad-relación (PNG y .drawio editable)
@@ -86,16 +88,21 @@ proyecto/
 
 ### Actualizar una base existente
 
-Si ya tienes la base `directorio` con datos, no vuelvas a importar `schema.sql`: haz un respaldo (`php db/backup.php`) y aplica la migración que corresponda. Ninguna borra datos y todas dejan la base en las mismas 14 tablas y 23 llaves foráneas:
+Si ya tienes la base `directorio` con datos, no vuelvas a importar `schema.sql`: haz un respaldo (`php db/backup.php`) y aplica las migraciones que falten, en orden de fecha. Ninguna borra datos. Hasta la de motivo y límite de solicitudes dejan la base en 14 tablas (una por módulo); la última la convierte al modelo generalizado de 12 tablas:
 
 ```bash
 # Desde la versión 1.0 (esquema original):
 mysql -u root directorio < db/migraciones/2026-11-11_actualizacion_version_2.sql
 # Desde la base con 17 tablas (disponibilidad, permisos y alertas), que se convierten en columnas:
 mysql -u root directorio < db/migraciones/2026-11-11_consolidar_desde_17_tablas.sql
-# Siempre, para la prevención de duplicados y la recuperación por correo (en este orden de fecha):
+# Siempre, para la prevención de duplicados y la recuperación por correo (en este orden de fecha; la última agrega el motivo y la dirección de las solicitudes):
 mysql -u root directorio < db/migraciones/2026-11-12_unicidad.sql
 mysql -u root directorio < db/migraciones/2026-11-12_recuperacion_por_correo.sql
+mysql -u root directorio < db/migraciones/2026-11-13_motivo_y_limite_solicitudes.sql
+# Modelo generalizado (contactos + tipos_actor + detalle_*): conserva los datos de los once módulos, la agenda y las etiquetas
+mysql -u root directorio < db/migraciones/2026-11-14_modelo_generalizado.sql
+# Marca como aceptada la política de datos en las cuentas creadas antes de que existiera (no cambia la estructura)
+mysql -u root directorio < db/migraciones/2026-11-15_politica_cuentas_anteriores.sql
 ```
 
 Si ya hay correos, NIT o cédulas repetidos, `2026-11-12_unicidad.sql` falla con «Duplicate entry»: el propio archivo explica cómo encontrar los repetidos para depurarlos y volver a ejecutarlo.
@@ -104,14 +111,20 @@ Las cuentas existentes quedan aprobadas (sin permisos por módulo hasta que un a
 
 ## Modelo de datos
 
-La base `directorio` tiene 14 tablas y 23 llaves foráneas. Las funciones de la versión 2.0 (aprobación de cuentas, permisos por módulo, alertas y agenda) no agregan tablas: usan columnas nuevas de `usuarios` (`estado`, `politica_version`, `politica_aceptada_en`, `puede_importar`, `permisos_modulos`, `ultimo_acceso`, `ultimo_intento_pendiente`, `alertas_vistas_hasta`) y la columna `disponibilidad` de `artistas` y `talleristas`.
+La base `directorio` usa un **modelo generalizado** de 12 tablas y 12 llaves foráneas (`db/schema.sql`):
 
-Las relaciones del esquema son:
+- `contactos` guarda los datos comunes de los once actores del directorio (nombre, apellido, cargo, organización, NIT, correo, teléfonos, dirección, ciudad, departamento, país, perfil, contacto, disponibilidad y la auditoría `fecha_registro`, `creado_por`, `actualizado_en`, `actualizado_por`). `tipos_actor` indica de cuál se trata.
+- Cada tipo con datos propios tiene una tabla `detalle_*` (relación 1 a 0..1: su llave primaria `id_contacto` es a la vez llave foránea de `contactos`): `detalle_directivo`, `detalle_institucion`, `detalle_personal` (la comparten Practicantes y Equipo, distinguidos por `vinculacion`), `detalle_mercadeo`, `detalle_medio`, `detalle_artista` y `detalle_editorial`. Talleristas, Proveedores y Asocajas no necesitan detalle.
+- `etiquetas` y `contacto_etiquetas` (llave compuesta `id_contacto` + `id_etiqueta`, ambas con `ON DELETE CASCADE`).
+- `usuarios` (`id_usuario`) conserva las columnas de la aprobación de cuentas, permisos por módulo, alertas, recuperación de contraseña y solicitud (`estado`, `permisos_modulos`, `reset_token_hash`, `motivo_solicitud`...).
 
-- Las once tablas de módulos referencian `usuarios.id` mediante `creado_por` y `actualizado_por` (cero o uno a cero o muchos, `ON DELETE SET NULL`: al borrar un usuario se conserva el registro y solo se anula su autor).
-- `registro_etiquetas.etiqueta_id` referencia `etiquetas.id` (`ON DELETE CASCADE`). Además `registro_etiquetas` identifica el registro etiquetado con el par `(modulo, registro_id)`, una referencia lógica sin llave foránea porque un mismo campo no puede apuntar a once tablas.
+Relaciones: `contactos.id_tipo_actor` → `tipos_actor` (`ON DELETE NO ACTION`: no se borra un tipo con contactos); `contactos.creado_por` y `actualizado_por` → `usuarios.id_usuario` (`ON DELETE SET NULL`: al borrar un usuario se conserva el registro y solo se anula su autor); cada `detalle_*` y `contacto_etiquetas.id_contacto` → `contactos` (`ON DELETE CASCADE`).
+
+Llaves únicas, que impiden registros repetidos dentro de un módulo: `contactos (id_tipo_actor, correo)`, `contactos (id_tipo_actor, nit)` y `detalle_directivo (cedula)`. El código accede a los datos con `includes/contactos.php`, que arma las consultas a partir de la lista de módulos (`includes/modulos.php`): los formularios y las pantallas usan los nombres de campo de siempre (por ejemplo la «Caja» de Asocajas se guarda como `contactos.nombre`).
 
 ![Diagrama entidad-relación de SIRAD](docs/diagrama_er.png)
+
+*Figura. Modelo generalizado de la base de datos. La base implementada agrega a `contactos` las columnas `contacto` y `disponibilidad` y conserva en `usuarios` las columnas de aprobación, permisos, alertas y recuperación, que la figura no detalla.*
 
 El diagrama editable está en [`docs/diagrama_er.drawio`](docs/diagrama_er.drawio) (se abre en diagrams.net o se importa en Lucidchart).
 

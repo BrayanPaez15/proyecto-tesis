@@ -2,7 +2,7 @@
 /**
  * Modulo Artistas - Registrar.
  *
- * Formulario de registro y edicion para la tabla `artistas` y su agenda de disponibilidad (columna `disponibilidad`). Inserta un
+ * Formulario de registro y edicion del modulo (contacto + detalle) y su agenda de disponibilidad (columna `disponibilidad`). Inserta un
  * nuevo registro (validando formato de correo y evitando duplicados por
  * correo) o actualiza uno existente (parametro GET "id", solo permitido
  * a administradores) mediante sentencias preparadas, dejando rastro de
@@ -13,88 +13,11 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
-require_once "includes/duplicados.php";
+require_once "includes/contactos.php";
 require_permiso('artistas', 'registrar');
 require_once "includes/agenda.php";
 
-$editando = null;
-if (isset($_GET['id'])) {
-  require_admin();
-  $stmt = $conn->prepare("SELECT * FROM artistas WHERE id = ?");
-  $id = (int) $_GET['id'];
-  $stmt->bind_param("i", $id);
-  $stmt->execute();
-  $editando = $stmt->get_result()->fetch_assoc();
-  $stmt->close();
-}
-$agendaFilas = $editando ? agenda_obtener($conn, 'artistas', (int) $editando['id']) : [];
-
-$error = "";
-if ($_POST) {
-  csrf_verify();
-  $usuarioId = (int) $_SESSION['usuario_id'];
-  normalizar_unicos();
-
-  $esEdicion = !empty($_POST['id']);
-  if ($esEdicion) {
-    require_admin();
-    $id = (int) $_POST['id'];
-    [$agendaFilas, $errorAgenda] = agenda_leer_post();
-    $error = $errorAgenda !== '' ? $errorAgenda : error_duplicado($conn, 'artistas', $id);
-    if ($error === '') {
-      $stmt = $conn->prepare("UPDATE artistas SET nombre = ?, perfil = ?, organizacion = ?, agenda = ?, telefono = ?, correo = ?, filbo = ?, actualizado_en = NOW(), actualizado_por = ? WHERE id = ?");
-      $stmt->bind_param("sssssssii", $_POST['nombre'], $_POST['perfil'], $_POST['organizacion'], $_POST['agenda'], $_POST['telefono'], $_POST['correo'], $_POST['filbo'], $usuarioId, $id);
-      try {
-        $stmt->execute();
-        $stmt->close();
-        agenda_guardar($conn, 'artistas', $id, $agendaFilas, $usuarioId);
-        header("Location: artistas_registros.php?msg=" . rawurlencode("Registro actualizado") . "&tipo=success");
-        exit;
-      } catch (mysqli_sql_exception $e) {
-        $error = mensaje_duplicado($e) ?? throw $e;
-      }
-    }
-  }
-
-  $correo = trim($_POST['correo'] ?? '');
-  if ($esEdicion) {
-    // la edicion ya se resolvio arriba; si hubo error de agenda se vuelve a mostrar el formulario
-  } elseif ($correo !== '' && !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
-    $error = "El correo no tiene un formato válido.";
-  } elseif ($correo !== '') {
-    $check = $conn->prepare("SELECT id FROM artistas WHERE correo = ?");
-    $check->bind_param("s", $correo);
-    $check->execute();
-    $check->store_result();
-    if ($check->num_rows > 0) {
-      $error = "Ya existe un registro con este correo en este módulo.";
-    }
-    $check->close();
-  }
-
-  if (!$esEdicion && $error === '') {
-    [$agendaFilas, $errorAgenda] = agenda_leer_post();
-    if ($errorAgenda !== '') {
-      $error = $errorAgenda;
-    } elseif (($error = error_duplicado($conn, 'artistas')) !== '') {
-      // se muestra el error y se conserva lo escrito
-    } else {
-      $stmt = $conn->prepare("INSERT INTO artistas (nombre, perfil, organizacion, agenda, telefono, correo, filbo, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-      $stmt->bind_param("sssssssi", $_POST['nombre'], $_POST['perfil'], $_POST['organizacion'], $_POST['agenda'], $_POST['telefono'], $_POST['correo'], $_POST['filbo'], $usuarioId);
-      try {
-        $stmt->execute();
-        $nuevoId = $conn->insert_id;
-        $stmt->close();
-        agenda_guardar($conn, 'artistas', $nuevoId, $agendaFilas, $usuarioId);
-        header("Location: " . (puede_modulo('artistas', 'ver') ? 'artistas_registros.php' : 'artistas.php') . "?msg=" . rawurlencode("Registro guardado") . "&tipo=success");
-        exit;
-      } catch (mysqli_sql_exception $e) {
-        $error = mensaje_duplicado($e) ?? throw $e;
-      }
-    }
-  }
-}
-$valores = ($error !== '' && $_POST) ? $_POST : ($editando ?? []);
+[$editando, $error, $valores, $agendaFilas] = modulo_procesar($conn, 'artistas');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -102,9 +25,9 @@ $valores = ($error !== '' && $_POST) ? $_POST : ($editando ?? []);
 <head>
   <meta charset="UTF-8">
   <title>Artistas - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
 </head>
 
 <body>
@@ -135,7 +58,7 @@ $valores = ($error !== '' && $_POST) ? $_POST : ($editando ?? []);
       <label>Agenda (notas)<input name="agenda" value="<?= htmlspecialchars($valores['agenda'] ?? '') ?>"></label>
       <label>Teléfono<input name="telefono" value="<?= htmlspecialchars($valores['telefono'] ?? '') ?>"></label>
       <label>Correo<input name="correo" type="email" value="<?= htmlspecialchars($valores['correo'] ?? '') ?>"></label>
-      <label>Filbo<input name="filbo" value="<?= htmlspecialchars($valores['filbo'] ?? '') ?>"></label>
+      <label>Filbo<select name="filbo"><option value="">—</option><option value="Sí"<?= ($valores['filbo'] ?? '') === 'Sí' ? ' selected' : '' ?>>Sí</option><option value="No"<?= ($valores['filbo'] ?? '') === 'No' ? ' selected' : '' ?>>No</option></select></label>
       <?php agenda_render_form($agendaFilas); ?>
       <button><?= $editando ? 'Actualizar' : 'Guardar' ?></button>
     </form>

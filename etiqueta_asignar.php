@@ -12,6 +12,7 @@ require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
 require_once "includes/csrf.php";
+require_once "includes/contactos.php";
 
 $modulos = require "includes/modulos.php";
 $modulo = $_GET['modulo'] ?? $_POST['modulo'] ?? '';
@@ -24,15 +25,10 @@ if (!isset($modulos[$modulo]) || $id <= 0) {
 
 $info = $modulos[$modulo];
 require_permiso($modulo, 'registrar');
-$tabla = $info['tabla'];
 $campoNombre = $info['campo_busqueda'];
 $archivoRegistros = "{$info['archivo']}_registros.php";
 
-$stmt = $conn->prepare("SELECT * FROM `$tabla` WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$registro = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$registro = registro_obtener($conn, $modulo, $id);
 
 if (!$registro) {
     header("Location: $archivoRegistros");
@@ -42,17 +38,18 @@ if (!$registro) {
 if ($_POST && isset($_POST['guardar'])) {
     csrf_verify();
 
-    $del = $conn->prepare("DELETE FROM registro_etiquetas WHERE modulo = ? AND registro_id = ?");
-    $del->bind_param("si", $modulo, $id);
+    $del = $conn->prepare("DELETE FROM contacto_etiquetas WHERE id_contacto = ?");
+    $del->bind_param("i", $id);
     $del->execute();
     $del->close();
 
     $seleccionadas = $_POST['etiquetas'] ?? [];
     if ($seleccionadas) {
-        $stmt = $conn->prepare("INSERT INTO registro_etiquetas (modulo, registro_id, etiqueta_id) VALUES (?, ?, ?)");
-        foreach ($seleccionadas as $etiquetaId) {
+        // solo se asignan etiquetas que existen (un id inventado se ignora)
+        $stmt = $conn->prepare("INSERT IGNORE INTO contacto_etiquetas (id_contacto, id_etiqueta) SELECT ?, id_etiqueta FROM etiquetas WHERE id_etiqueta = ?");
+        foreach ((array) $seleccionadas as $etiquetaId) {
             $etiquetaIdInt = (int) $etiquetaId;
-            $stmt->bind_param("sii", $modulo, $id, $etiquetaIdInt);
+            $stmt->bind_param("ii", $id, $etiquetaIdInt);
             $stmt->execute();
         }
         $stmt->close();
@@ -62,11 +59,11 @@ if ($_POST && isset($_POST['guardar'])) {
     exit;
 }
 
-$todas = $conn->query("SELECT * FROM etiquetas ORDER BY nombre");
+$todas = $conn->query("SELECT id_etiqueta AS id, nombre, color FROM etiquetas ORDER BY nombre");
 
 $asignadas = [];
-$stmt = $conn->prepare("SELECT etiqueta_id FROM registro_etiquetas WHERE modulo = ? AND registro_id = ?");
-$stmt->bind_param("si", $modulo, $id);
+$stmt = $conn->prepare("SELECT id_etiqueta AS etiqueta_id FROM contacto_etiquetas WHERE id_contacto = ?");
+$stmt->bind_param("i", $id);
 $stmt->execute();
 $r = $stmt->get_result();
 while ($fila = $r->fetch_assoc()) {
@@ -80,8 +77,8 @@ $stmt->close();
 <head>
   <meta charset="UTF-8">
   <title>Etiquetas de <?= htmlspecialchars($registro[$campoNombre] ?? '') ?> - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 </head>
 
 <body>

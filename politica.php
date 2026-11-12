@@ -16,7 +16,7 @@ cabeceras_seguridad();
 <head>
   <meta charset="UTF-8">
   <title>Política de tratamiento de datos - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
 </head>
 
 <body>

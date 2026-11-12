@@ -29,6 +29,23 @@ defined('MAIL_SEGURIDAD') || define('MAIL_SEGURIDAD', 'tls');
 defined('MAIL_USUARIO') || define('MAIL_USUARIO', '');
 defined('MAIL_CLAVE') || define('MAIL_CLAVE', '');
 defined('RECUPERAR_POR_CORREO') || define('RECUPERAR_POR_CORREO', MAIL_MODO === 'smtp');
+// Solicitudes de cuenta: maximo por conexion (direccion IP) dentro de la ventana en minutos, y maximo de
+// solicitudes pendientes de revision en todo el sistema; evitan que alguien llene el panel de aprobacion.
+defined('SOLICITUDES_MAX_POR_IP') || define('SOLICITUDES_MAX_POR_IP', 3);
+defined('SOLICITUDES_VENTANA_MIN') || define('SOLICITUDES_VENTANA_MIN', 60);
+defined('SOLICITUDES_MAX_PENDIENTES') || define('SOLICITUDES_MAX_PENDIENTES', 30);
+// Contacto que se muestra a quien recibe un rechazo o un limite. Si CONTACTO_CORREO esta vacio se usa el
+// correo del administrador mas antiguo.
+defined('CONTACTO_CORREO') || define('CONTACTO_CORREO', '');
+defined('CONTACTO_TELEFONO') || define('CONTACTO_TELEFONO', '');
+// Enlace de WhatsApp del administrador: es el medio principal que se muestra a quien es rechazado, a quien
+// pierde su cuenta y a quien llega a un limite de solicitudes. Vacio = solo se muestran correo y teléfono.
+defined('CONTACTO_WHATSAPP') || define('CONTACTO_WHATSAPP', 'https://wa.me/573053857835');
+// Importacion desde Excel o CSV: tamano maximo del archivo en MB y filas maximas por archivo.
+defined('IMPORTAR_MAX_MB') || define('IMPORTAR_MAX_MB', 5);
+defined('IMPORTAR_MAX_FILAS') || define('IMPORTAR_MAX_FILAS', 5000);
+// Manual de uso flotante (boton «Manual» en la esquina inferior derecha de todas las paginas).
+defined('AYUDA_ACTIVA') || define('AYUDA_ACTIVA', true);
 defined('MAIL_REMITENTE') || define('MAIL_REMITENTE', 'no-responder@sirad.local');
 defined('MAIL_NOMBRE_REMITENTE') || define('MAIL_NOMBRE_REMITENTE', 'SIRAD');
 

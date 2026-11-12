@@ -1,347 +1,34 @@
--- Esquema de la base de datos "directorio" (SIRAD)
--- Solo estructura (sin datos), generado con mysqldump --no-data
--- 14 tablas y 23 llaves foraneas (verificadas contra un volcado de la base en uso, 2026-10-16).
--- El 2026-11-11 se agregaron columnas, sin tablas nuevas: en `usuarios` (estado de la cuenta, politica aceptada,
--- permiso de importacion, permisos por modulo en JSON, ultimo acceso, ultimo intento sin aprobar y marca de lectura
--- de alertas) y la columna `disponibilidad` (agenda en JSON) en `artistas` y `talleristas`; ver db/migraciones/.
--- El 2026-11-12 se agregaron en usuarios las columnas reset_token_hash, reset_expira y reset_enviado_en
--- (recuperacion de contrasena por correo; db/migraciones/2026-11-12_recuperacion_por_correo.sql).
--- El 2026-11-12 se agregaron llaves UNIQUE (correo en los once modulos, NIT en instituciones_e y editoriales,
--- cedula en directivos) para impedir registros duplicados; db/migraciones/2026-11-12_unicidad.sql.
--- Los contadores AUTO_INCREMENT se omiten a proposito: dependen de los datos, no de la estructura.
--- ATENCION: este script ejecuta DROP TABLE IF EXISTS sobre cada tabla. Si ya existe una base
--- "directorio" con informacion, haga un respaldo antes de importarlo (php db/backup.php).
+-- ============================================================================
+-- SIRAD - Esquema de la base de datos `directorio` (modelo generalizado)
+-- 12 tablas y 12 llaves foraneas. MariaDB 10.4 (InnoDB, utf8mb4).
+--
+-- Modelo: la tabla `contactos` guarda los datos comunes de los once actores del
+-- directorio; `tipos_actor` indica de cual se trata y cada tabla `detalle_*` guarda
+-- solo los atributos propios de su tipo (relacion 1 a 0..1: su llave primaria es a la
+-- vez llave foranea de contactos). Talleristas, proveedores y asocajas no necesitan
+-- detalle. Las etiquetas se asignan a un contacto con `contacto_etiquetas`.
+--
+-- Llaves unicas (impiden registros repetidos dentro de un tipo de actor):
+--   contactos (id_tipo_actor, correo), contactos (id_tipo_actor, nit) y
+--   detalle_directivo (cedula). Un valor vacio se guarda como NULL.
+--
+-- Para una base con el esquema anterior (14 tablas, una por modulo) use la migracion
+-- db/migraciones/2026-11-14_modelo_generalizado.sql, que conserva los datos.
+-- ============================================================================
+
 CREATE DATABASE IF NOT EXISTS `directorio` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `directorio`;
 
-
-
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-DROP TABLE IF EXISTS `artistas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `artistas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(150) DEFAULT NULL,
-  `perfil` text DEFAULT NULL,
-  `organizacion` varchar(150) DEFAULT NULL,
-  `agenda` text DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `filbo` varchar(50) DEFAULT NULL,
-  `disponibilidad` text DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_artistas_correo` (`correo`),
-  KEY `fk_artistas_creado_por` (`creado_por`),
-  KEY `fk_artistas_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_artistas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_artistas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `asocajas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `asocajas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `caja` varchar(150) DEFAULT NULL,
-  `departamento` varchar(100) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_asocajas_correo` (`correo`),
-  KEY `fk_asocajas_creado_por` (`creado_por`),
-  KEY `fk_asocajas_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_asocajas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_asocajas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `directivos`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `directivos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `titulo` varchar(50) DEFAULT NULL,
-  `nombre` varchar(100) DEFAULT NULL,
-  `apellido` varchar(100) DEFAULT NULL,
-  `cedula` varchar(50) DEFAULT NULL,
-  `calidad` varchar(100) DEFAULT NULL,
-  `estado` varchar(50) DEFAULT NULL,
-  `entidad` varchar(150) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `celular` varchar(50) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `integrante` varchar(50) DEFAULT NULL,
-  `vigencia` varchar(50) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_directivos_correo` (`correo`),
-  UNIQUE KEY `uq_directivos_cedula` (`cedula`),
-  KEY `fk_directivos_creado_por` (`creado_por`),
-  KEY `fk_directivos_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_directivos_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_directivos_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `editoriales`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `editoriales` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(150) DEFAULT NULL,
-  `nit` varchar(50) DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `descuento` varchar(50) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_editoriales_correo` (`correo`),
-  UNIQUE KEY `uq_editoriales_nit` (`nit`),
-  KEY `fk_editoriales_creado_por` (`creado_por`),
-  KEY `fk_editoriales_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_editoriales_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_editoriales_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `etiquetas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `etiquetas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(50) NOT NULL,
-  `color` varchar(20) NOT NULL DEFAULT '#2563eb',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `nombre` (`nombre`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `instituciones_e`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `instituciones_e` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `clase` varchar(100) DEFAULT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `nit` varchar(50) DEFAULT NULL,
-  `calidad` varchar(100) DEFAULT NULL,
-  `jornada` varchar(100) DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `ciudad` varchar(100) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_instituciones_e_correo` (`correo`),
-  UNIQUE KEY `uq_instituciones_e_nit` (`nit`),
-  KEY `fk_instituciones_e_creado_por` (`creado_por`),
-  KEY `fk_instituciones_e_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_instituciones_e_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_instituciones_e_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `medios`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `medios` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `categoria` varchar(100) DEFAULT NULL,
-  `medio` varchar(150) DEFAULT NULL,
-  `fuente` varchar(150) DEFAULT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `telefono2` varchar(50) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_medios_correo` (`correo`),
-  KEY `fk_medios_creado_por` (`creado_por`),
-  KEY `fk_medios_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_medios_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_medios_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `mercadeo`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `mercadeo` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `empresa` varchar(150) DEFAULT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `tema` varchar(150) DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `proyecto` varchar(150) DEFAULT NULL,
-  `patrocinio` varchar(100) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_mercadeo_correo` (`correo`),
-  KEY `fk_mercadeo_creado_por` (`creado_por`),
-  KEY `fk_mercadeo_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_mercadeo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_mercadeo_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `practicantes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `practicantes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `disciplina` varchar(100) DEFAULT NULL,
-  `generacion` varchar(50) DEFAULT NULL,
-  `inicio` date DEFAULT NULL,
-  `fin` date DEFAULT NULL,
-  `cumple` date DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `telefono_contacto` varchar(50) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_practicantes_correo` (`correo`),
-  KEY `fk_practicantes_creado_por` (`creado_por`),
-  KEY `fk_practicantes_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_practicantes_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_practicantes_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `proveedores`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `proveedores` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `pais` varchar(100) DEFAULT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `direccion` varchar(200) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_proveedores_correo` (`correo`),
-  KEY `fk_proveedores_creado_por` (`creado_por`),
-  KEY `fk_proveedores_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_proveedores_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_proveedores_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `registro_etiquetas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `registro_etiquetas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `modulo` varchar(30) NOT NULL,
-  `registro_id` int(11) NOT NULL,
-  `etiqueta_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `modulo_registro_etiqueta` (`modulo`,`registro_id`,`etiqueta_id`),
-  KEY `etiqueta_id` (`etiqueta_id`),
-  CONSTRAINT `registro_etiquetas_ibfk_1` FOREIGN KEY (`etiqueta_id`) REFERENCES `etiquetas` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `talleristas`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `talleristas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `perfil` text DEFAULT NULL,
-  `disponibilidad` text DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_talleristas_correo` (`correo`),
-  KEY `fk_talleristas_creado_por` (`creado_por`),
-  KEY `fk_talleristas_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_talleristas_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_talleristas_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `team_pombo`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `team_pombo` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(100) DEFAULT NULL,
-  `apellido` varchar(100) DEFAULT NULL,
-  `celular` varchar(50) DEFAULT NULL,
-  `correo` varchar(150) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `cumple` date DEFAULT NULL,
-  `contacto` varchar(150) DEFAULT NULL,
-  `telefono` varchar(50) DEFAULT NULL,
-  `inicio` date DEFAULT NULL,
-  `fin` date DEFAULT NULL,
-  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creado_por` int(11) DEFAULT NULL,
-  `actualizado_en` timestamp NULL DEFAULT NULL,
-  `actualizado_por` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_team_pombo_correo` (`correo`),
-  KEY `fk_team_pombo_creado_por` (`creado_por`),
-  KEY `fk_team_pombo_actualizado_por` (`actualizado_por`),
-  CONSTRAINT `fk_team_pombo_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_team_pombo_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `usuarios`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+
+-- ----------------------------------------------------------------------------
+-- usuarios: cuentas del sistema (aprobacion, permisos por modulo, alertas y
+-- recuperacion de contrasena viajan en columnas de esta misma tabla)
+-- ----------------------------------------------------------------------------
 CREATE TABLE `usuarios` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL AUTO_INCREMENT,
   `nombre` varchar(150) NOT NULL,
   `correo` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
@@ -362,18 +49,168 @@ CREATE TABLE `usuarios` (
   `reset_token_hash` char(64) DEFAULT NULL,
   `reset_expira` datetime DEFAULT NULL,
   `reset_enviado_en` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
+  `motivo_solicitud` varchar(500) DEFAULT NULL,
+  `ip_solicitud` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id_usuario`),
   UNIQUE KEY `correo` (`correo`),
-  KEY `idx_usuarios_reset_token` (`reset_token_hash`)
+  KEY `idx_usuarios_reset_token` (`reset_token_hash`),
+  KEY `idx_usuarios_ip_solicitud` (`ip_solicitud`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+-- ----------------------------------------------------------------------------
+-- tipos_actor: los once actores del directorio
+-- ----------------------------------------------------------------------------
+CREATE TABLE `tipos_actor` (
+  `id_tipo_actor` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `descripcion` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`id_tipo_actor`),
+  UNIQUE KEY `nombre` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ----------------------------------------------------------------------------
+-- contactos: datos comunes de todos los actores
+-- ----------------------------------------------------------------------------
+CREATE TABLE `contactos` (
+  `id_contacto` int(11) NOT NULL AUTO_INCREMENT,
+  `id_tipo_actor` int(11) NOT NULL,
+  `nombre` varchar(150) NOT NULL,
+  `apellido` varchar(100) DEFAULT NULL,
+  `cargo` varchar(100) DEFAULT NULL,
+  `organizacion` varchar(150) DEFAULT NULL,
+  `nit` varchar(50) DEFAULT NULL,
+  `correo` varchar(150) DEFAULT NULL,
+  `telefono` varchar(50) DEFAULT NULL,
+  `telefono_alterno` varchar(50) DEFAULT NULL,
+  `direccion` varchar(200) DEFAULT NULL,
+  `ciudad` varchar(100) DEFAULT NULL,
+  `departamento` varchar(100) DEFAULT NULL,
+  `pais` varchar(100) DEFAULT NULL,
+  `perfil` text DEFAULT NULL,
+  `contacto` varchar(150) DEFAULT NULL,
+  `disponibilidad` text DEFAULT NULL,
+  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp(),
+  `creado_por` int(11) DEFAULT NULL,
+  `actualizado_en` timestamp NULL DEFAULT NULL,
+  `actualizado_por` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  UNIQUE KEY `uq_contactos_tipo_correo` (`id_tipo_actor`,`correo`),
+  UNIQUE KEY `uq_contactos_tipo_nit` (`id_tipo_actor`,`nit`),
+  KEY `fk_contactos_creado_por` (`creado_por`),
+  KEY `fk_contactos_actualizado_por` (`actualizado_por`),
+  CONSTRAINT `fk_contactos_tipo_actor` FOREIGN KEY (`id_tipo_actor`) REFERENCES `tipos_actor` (`id_tipo_actor`) ON DELETE NO ACTION,
+  CONSTRAINT `fk_contactos_creado_por` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id_usuario`) ON DELETE SET NULL,
+  CONSTRAINT `fk_contactos_actualizado_por` FOREIGN KEY (`actualizado_por`) REFERENCES `usuarios` (`id_usuario`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ----------------------------------------------------------------------------
+-- etiquetas y su asignacion a contactos
+-- ----------------------------------------------------------------------------
+CREATE TABLE `etiquetas` (
+  `id_etiqueta` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `color` varchar(20) NOT NULL DEFAULT '#2563eb',
+  PRIMARY KEY (`id_etiqueta`),
+  UNIQUE KEY `nombre` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `contacto_etiquetas` (
+  `id_contacto` int(11) NOT NULL,
+  `id_etiqueta` int(11) NOT NULL,
+  PRIMARY KEY (`id_contacto`,`id_etiqueta`),
+  KEY `fk_contacto_etiquetas_etiqueta` (`id_etiqueta`),
+  CONSTRAINT `fk_contacto_etiquetas_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE,
+  CONSTRAINT `fk_contacto_etiquetas_etiqueta` FOREIGN KEY (`id_etiqueta`) REFERENCES `etiquetas` (`id_etiqueta`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ----------------------------------------------------------------------------
+-- detalle_*: atributos propios de cada tipo (1 a 0..1 con contactos)
+-- ----------------------------------------------------------------------------
+CREATE TABLE `detalle_directivo` (
+  `id_contacto` int(11) NOT NULL,
+  `titulo` varchar(50) DEFAULT NULL,
+  `cedula` varchar(30) DEFAULT NULL,
+  `calidad` varchar(50) DEFAULT NULL,
+  `estado` varchar(30) DEFAULT NULL,
+  `integrante` varchar(100) DEFAULT NULL,
+  `vigencia` varchar(50) DEFAULT NULL,
+  `celular` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  UNIQUE KEY `uq_detalle_directivo_cedula` (`cedula`),
+  CONSTRAINT `fk_detalle_directivo_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_institucion` (
+  `id_contacto` int(11) NOT NULL,
+  `clase` varchar(100) DEFAULT NULL,
+  `calidad` varchar(100) DEFAULT NULL,
+  `jornada` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_institucion_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_personal` (
+  `id_contacto` int(11) NOT NULL,
+  `vinculacion` enum('equipo','practicante') NOT NULL,
+  `disciplina` varchar(100) DEFAULT NULL,
+  `generacion` varchar(50) DEFAULT NULL,
+  `inicio` date DEFAULT NULL,
+  `fin` date DEFAULT NULL,
+  `cumple` date DEFAULT NULL,
+  `contacto_emergencia` varchar(100) DEFAULT NULL,
+  `telefono_emergencia` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_personal_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_mercadeo` (
+  `id_contacto` int(11) NOT NULL,
+  `tema` varchar(150) DEFAULT NULL,
+  `proyecto` varchar(150) DEFAULT NULL,
+  `patrocinio` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_mercadeo_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_medio` (
+  `id_contacto` int(11) NOT NULL,
+  `categoria` varchar(100) DEFAULT NULL,
+  `medio` varchar(100) DEFAULT NULL,
+  `fuente` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_medio_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_artista` (
+  `id_contacto` int(11) NOT NULL,
+  `agenda` text DEFAULT NULL,
+  `filbo` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_artista_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `detalle_editorial` (
+  `id_contacto` int(11) NOT NULL,
+  `descuento` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id_contacto`),
+  CONSTRAINT `fk_detalle_editorial_contacto` FOREIGN KEY (`id_contacto`) REFERENCES `contactos` (`id_contacto`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- ----------------------------------------------------------------------------
+-- Datos base: los once tipos de actor
+-- ----------------------------------------------------------------------------
+INSERT INTO `tipos_actor` (`nombre`, `descripcion`) VALUES
+  ('Directivo', 'Miembros directivos y vigencias'),
+  ('Institución educativa', 'Universidades, colegios y jardines vinculados'),
+  ('Practicante', 'Estudiantes en práctica académica'),
+  ('Equipo Pombo', 'Equipo interno de la fundación'),
+  ('Mercadeo', 'Empresas y patrocinios'),
+  ('Medio', 'Prensa, radio y medios digitales'),
+  ('Artista', 'Ilustradores, escritores y creadores'),
+  ('Editorial', 'Editoriales aliadas'),
+  ('Asocaja', 'Cajas de compensación'),
+  ('Tallerista', 'Facilitadores y formadores'),
+  ('Proveedor', 'Proveedores nacionales e internacionales');
+
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-

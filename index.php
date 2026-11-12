@@ -11,6 +11,7 @@
 require "auth.php";
 include "conexion.php";
 require_once "includes/layout.php";
+require_once "includes/contactos.php";
 
 /**
  * Botones de la tarjeta de un modulo segun los permisos: «Ingresar» (formulario de registro) si el
@@ -23,17 +24,17 @@ function tarjeta_enlaces(string $modulo, string $color): void
     $registrar = puede_modulo($modulo, 'registrar');
     $ver = puede_modulo($modulo, 'ver');
     if ($registrar) {
-        echo '<a href="' . htmlspecialchars($modulo) . '.php" class="' . $color . '">Ingresar</a>';
+        $enlaces[] = '<a href="' . htmlspecialchars($modulo) . '.php" class="' . $color . '">Ingresar</a>';
     }
     if ($ver) {
-        echo '<a href="' . htmlspecialchars($modulo) . '_registros.php" class="' . ($registrar ? 'ver-registros' : $color) . '">Ver registros</a>';
+        $enlaces[] = '<a href="' . htmlspecialchars($modulo) . '_registros.php" class="' . ($registrar ? 'ver-registros' : $color) . '">Ver registros</a>';
     }
+    echo '<div class="card-links">' . implode('', $enlaces ?? []) . '</div>';
 }
 
-function contar(mysqli $conn, string $tabla): int
+function contar(mysqli $conn, string $modulo): int
 {
-    $resultado = $conn->query("SELECT COUNT(*) AS total FROM `$tabla`");
-    return (int) $resultado->fetch_assoc()['total'];
+    return contar_modulo($conn, $modulo);
 }
 ?>
 <!DOCTYPE html>
@@ -42,8 +43,8 @@ function contar(mysqli $conn, string $tabla): int
 <head>
     <meta charset="UTF-8">
     <title>SIRAD - Sistema de Registro y Administración de Directorios</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="js/animations.js" defer></script>
+    <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+    <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 
     <style>
         * {
@@ -62,35 +63,38 @@ function contar(mysqli $conn, string $tabla): int
 
         h1 {
             text-align: center;
-            margin: 40px 20px 6px;
-            font-size: 32px;
+            margin: 26px 20px 6px;
+            font-size: 30px;
             border-left: none;
             padding-left: 0;
         }
 
         .subtitle {
             text-align: center;
-            margin: 0 20px 40px;
+            margin: 0 20px 22px;
             color: #6b7280;
             font-size: 15px;
         }
 
         .container {
-            max-width: 1300px;
-            margin: auto;
-            padding: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 6px 28px 40px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 20px;
         }
 
         .card {
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             background: white;
-            border-radius: 14px;
-            padding: 30px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 22px 18px 18px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
             text-align: center;
             transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
@@ -106,48 +110,75 @@ function contar(mysqli $conn, string $tabla): int
         }
 
         .card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.14);
+            transform: translateY(-4px);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
         }
 
         .icon {
-            font-size: 40px;
-            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: #f1f5ff;
+            font-size: 30px;
+            margin-bottom: 12px;
             transition: transform 0.25s ease;
         }
 
         .card:hover .icon {
-            transform: scale(1.15) rotate(-4deg);
+            transform: scale(1.08) rotate(-4deg);
         }
 
         .card h3 {
-            margin: 10px 0;
-            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 2.5em;
+            margin: 0 0 8px;
+            font-size: 17px;
+            line-height: 1.25;
         }
 
         .card .stat {
             display: inline-block;
             margin-bottom: 10px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: #2563eb;
             background: #eef2ff;
-            padding: 3px 10px;
+            padding: 4px 12px;
             border-radius: 999px;
         }
 
         .card p {
-            font-size: 15px;
+            margin: 0 0 18px;
+            font-size: 13px;
+            line-height: 1.45;
             color: #6b7280;
-            margin-bottom: 25px;
+            min-height: 2.9em;
+        }
+
+        .card-links {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: auto;
         }
 
         .card a {
-            display: block;
-            padding: 14px;
-            border-radius: 8px;
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 8px 6px;
+            border-radius: 10px;
             color: white;
+            font-size: 13px;
             font-weight: bold;
+            white-space: nowrap;
             text-decoration: none;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -212,6 +243,17 @@ function contar(mysqli $conn, string $tabla): int
         .gray:hover {
             background: #475569;
         }
+
+        /* Pantallas pequenas: dos tarjetas por fila y botones apilados */
+        @media (max-width: 560px) {
+            h1 { font-size: 24px; margin-top: 16px; }
+            .container { grid-template-columns: 1fr 1fr; gap: 12px; padding: 6px 12px 32px; }
+            .card { padding: 14px 10px 12px; }
+            .icon { width: 46px; height: 46px; font-size: 24px; margin-bottom: 8px; }
+            .card h3 { font-size: 14px; }
+            .card p { display: none; }
+            .card-links { flex-direction: column; gap: 8px; }
+        }
     </style>
 </head>
 
@@ -221,11 +263,11 @@ function contar(mysqli $conn, string $tabla): int
 
     <h1>SIRAD</h1>
     <?php if (is_admin() && ($solicitudesPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total']) > 0): ?>
-        <p class="pending-notice" style="max-width: 1260px; margin: 0 auto 20px;"><?= $solicitudesPendientes ?> solicitud<?= $solicitudesPendientes === 1 ? '' : 'es' ?> de cuenta pendiente<?= $solicitudesPendientes === 1 ? '' : 's' ?> de tu aprobación. <a href="usuarios.php">Aprobar o rechazar</a></p>
+        <p class="pending-notice" style="max-width: 1444px; width: calc(100% - 56px); margin: 0 auto 14px;"><?= $solicitudesPendientes ?> solicitud<?= $solicitudesPendientes === 1 ? '' : 'es' ?> de cuenta pendiente<?= $solicitudesPendientes === 1 ? '' : 's' ?> de tu aprobación. <a href="usuarios.php">Aprobar o rechazar</a></p>
     <?php endif; ?>
 
     <?php if (is_admin() && ($alertasSinLeer = alertas_pendientes($conn)) > 0): ?>
-        <p class="pending-notice" style="max-width: 1260px; margin: 0 auto 20px;">Tienes <?= $alertasSinLeer ?> alerta<?= $alertasSinLeer === 1 ? '' : 's' ?> sin leer (cuentas nuevas e inicios de sesión). <a href="alertas.php">Ver alertas</a></p>
+        <p class="pending-notice" style="max-width: 1444px; width: calc(100% - 56px); margin: 0 auto 14px;">Tienes <?= $alertasSinLeer ?> alerta<?= $alertasSinLeer === 1 ? '' : 's' ?> sin leer (cuentas nuevas e inicios de sesión). <a href="alertas.php">Ver alertas</a></p>
     <?php endif; ?>
 
     <?php if (!tiene_algun_permiso()): ?>
@@ -240,7 +282,7 @@ function contar(mysqli $conn, string $tabla): int
         <div class="card">
             <div class="icon">🏫</div>
             <h3>Instituciones Educativas</h3>
-            <span class="stat"><?= contar($conn, 'instituciones_e') ?> registros</span>
+            <span class="stat"><?= contar($conn, 'instituciones-e') ?> registros</span>
             <p>Universidades, colegios y jardines vinculados</p>
             <?php tarjeta_enlaces('instituciones-e', 'blue'); ?>
         </div>
@@ -330,7 +372,7 @@ function contar(mysqli $conn, string $tabla): int
         <div class="card">
             <div class="icon">👥</div>
             <h3>Team</h3>
-            <span class="stat"><?= contar($conn, 'team_pombo') ?> registros</span>
+            <span class="stat"><?= contar($conn, 'team') ?> registros</span>
             <p>Equipo interno de la fundación</p>
             <?php tarjeta_enlaces('team', 'purple'); ?>
         </div>

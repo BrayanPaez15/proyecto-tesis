@@ -13,12 +13,13 @@ include "conexion.php";
 require_once "includes/layout.php";
 require_admin();
 
-$modulos = require "includes/modulos.php";
+require_once "includes/contactos.php";
+$modulos = modulos_def();
 
 $conteoPorModulo = [];
 $totalRegistros = 0;
-foreach ($modulos as $m) {
-    $c = (int) $conn->query("SELECT COUNT(*) AS total FROM `{$m['tabla']}`")->fetch_assoc()['total'];
+foreach ($modulos as $clave => $m) {
+    $c = contar_modulo($conn, $clave);
     $conteoPorModulo[$m['titulo']] = $c;
     $totalRegistros += $c;
 }
@@ -29,11 +30,11 @@ for ($i = 5; $i >= 0; $i--) {
     $clave = date('Y-m', strtotime("-$i months"));
     $porMes[$clave] = 0;
 }
-foreach ($modulos as $m) {
+foreach ($modulos as $clave => $m) {
     $res = $conn->query(
-        "SELECT DATE_FORMAT(fecha_registro, '%Y-%m') AS mes, COUNT(*) AS total
-         FROM `{$m['tabla']}`
-         WHERE fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        "SELECT DATE_FORMAT(c.fecha_registro, '%Y-%m') AS mes, COUNT(*) AS total
+         FROM " . modulo_from($clave) . "
+         WHERE c.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
          GROUP BY mes"
     );
     while ($fila = $res->fetch_assoc()) {
@@ -60,9 +61,9 @@ $totalEtiquetas = (int) $conn->query("SELECT COUNT(*) AS total FROM etiquetas")-
 $topEtiquetas = [];
 $res = $conn->query(
     "SELECT e.nombre, COUNT(*) AS total
-     FROM registro_etiquetas re
-     JOIN etiquetas e ON e.id = re.etiqueta_id
-     GROUP BY e.id
+     FROM contacto_etiquetas ce
+     JOIN etiquetas e ON e.id_etiqueta = ce.id_etiqueta
+     GROUP BY e.id_etiqueta
      ORDER BY total DESC
      LIMIT 8"
 );
@@ -94,8 +95,8 @@ function render_barras(array $datos): void
 <head>
   <meta charset="UTF-8">
   <title>Reportes - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
 </head>
 
 <body>

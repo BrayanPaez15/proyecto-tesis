@@ -17,8 +17,10 @@ iniciar_sesion_segura();
 sin_cache();
 include "conexion.php";
 require_once "includes/csrf.php";
+require_once "includes/ayuda.php";
 require_once "includes/politica.php";
 require_once "includes/password.php";
+require_once "includes/contacto.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -33,16 +35,21 @@ $preguntas = [
 ];
 
 $error = "";
+$errorPersistente = false;
+$ipSolicitud = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
 if ($_POST) {
     csrf_verify();
     $nombre = trim($_POST['nombre']);
     $correo = trim($_POST['correo']);
     $password = $_POST['password'];
+    $motivo = trim((string) ($_POST['motivo'] ?? ''));
     $pregunta = trim($_POST['pregunta'] ?? '');
     $respuesta = trim($_POST['respuesta'] ?? '');
 
     if ($nombre === '' || $correo === '' || $password === '' || $pregunta === '' || $respuesta === '') {
         $error = "Todos los campos son obligatorios.";
+    } elseif (mb_strlen($motivo) < 15 || mb_strlen($motivo) > 500) {
+        $error = "Cuéntale al administrador quién eres y por qué necesitas acceso (entre 15 y 500 caracteres).";
     } elseif (!in_array($pregunta, $preguntas, true)) {
         $error = "Selecciona una pregunta de seguridad válida.";
     } elseif (($error = validar_password($password, $correo)) !== '') {
@@ -50,7 +57,7 @@ if ($_POST) {
     } elseif (empty($_POST['acepta_politica'])) {
         $error = "Debes aceptar la política de tratamiento de datos personales para crear la cuenta.";
     } else {
-        $check = $conn->prepare("SELECT id FROM usuarios WHERE correo = ?");
+        $check = $conn->prepare("SELECT id_usuario AS id FROM usuarios WHERE correo = ?");
         $check->bind_param("s", $correo);
         $check->execute();
         $check->store_result();
@@ -58,6 +65,24 @@ if ($_POST) {
             $error = "Ya existe una cuenta con ese correo.";
         }
         $check->close();
+
+        // limites de solicitudes (no aplican a la primera cuenta del sistema, que queda como administrador)
+        if ($error === '' && (int) $conn->query("SELECT COUNT(*) FROM usuarios")->fetch_row()[0] > 0) {
+            $limite = $conn->prepare("SELECT COUNT(*) FROM usuarios WHERE rol = 'usuario' AND ip_solicitud = ? AND creado_en > DATE_SUB(NOW(), INTERVAL ? MINUTE)");
+            $ventana = (int) SOLICITUDES_VENTANA_MIN;
+            $limite->bind_param("si", $ipSolicitud, $ventana);
+            $limite->execute();
+            $porIp = (int) $limite->get_result()->fetch_row()[0];
+            $limite->close();
+            $pendientes = (int) $conn->query("SELECT COUNT(*) FROM usuarios WHERE estado = 'pendiente'")->fetch_row()[0];
+            if ($porIp >= (int) SOLICITUDES_MAX_POR_IP) {
+                $error = "Se recibieron demasiadas solicitudes desde tu conexión. Intenta de nuevo en " . $ventana . " minutos." . frase_contacto($conn);
+                $errorPersistente = true;
+            } elseif ($pendientes >= (int) SOLICITUDES_MAX_PENDIENTES) {
+                $error = "El sistema no recibe más solicitudes por ahora porque hay muchas pendientes de revisión." . frase_contacto($conn);
+                $errorPersistente = true;
+            }
+        }
     }
 
     if ($error === '') {
@@ -70,8 +95,8 @@ if ($_POST) {
         $estado = $esPrimero ? 'aprobado' : 'pendiente';
         $version = POLITICA_VERSION;
 
-        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, estado, pregunta_seguridad, respuesta_seguridad_hash, politica_version, politica_aceptada_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-        $stmt->bind_param("ssssssss", $nombre, $correo, $hash, $rol, $estado, $pregunta, $respuestaHash, $version);
+        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, estado, pregunta_seguridad, respuesta_seguridad_hash, politica_version, politica_aceptada_en, motivo_solicitud, ip_solicitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)");
+        $stmt->bind_param("ssssssssss", $nombre, $correo, $hash, $rol, $estado, $pregunta, $respuestaHash, $version, $motivo, $ipSolicitud);
         $stmt->execute();
         $nuevoId = $conn->insert_id;
         $stmt->close();
@@ -86,28 +111,31 @@ if ($_POST) {
 <head>
     <meta charset="UTF-8">
     <title>Crear usuario - SIRAD</title>
-    <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/mensajes.js" defer></script>
-  <script src="js/password.js" defer></script>
+    <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/mensajes.js?v=<?= @filemtime(__DIR__ . '/js/mensajes.js') ?>" defer></script>
+  <script src="js/password.js?v=<?= @filemtime(__DIR__ . '/js/password.js') ?>" defer></script>
 </head>
 
 <body>
 
     <div class="auth-page">
-        <form class="form-card auth-card" method="POST">
+        <form class="form-card auth-card auth-ancho" method="POST">
             <h1>SIRAD</h1>
             <p class="auth-subtitle">Crear cuenta</p>
 
             <?php if ($error): ?>
-                <p class="auth-error"><?= htmlspecialchars($error) ?></p>
+                <p class="auth-error"<?= $errorPersistente ? ' data-persistente' : '' ?>><?= aviso_con_enlaces($error) ?></p>
             <?php endif; ?>
 
             <?php csrf_field(); ?>
             <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>"></label>
             <label>Correo<input type="email" name="correo" required value="<?= htmlspecialchars($_POST['correo'] ?? '') ?>"></label>
-            <label>Contraseña<input type="password" name="password" required minlength="8" maxlength="64" autocomplete="new-password" data-pw></label>
-            <?php render_requisitos_password(); ?>
+            <label class="campo-ancho">¿Quién eres y por qué necesitas acceso?<textarea name="motivo" required minlength="15" maxlength="500" rows="2" placeholder="Ej.: Soy practicante de la Fundación y necesito registrar artistas del programa de lectura."><?= htmlspecialchars($_POST['motivo'] ?? '') ?></textarea></label>
+            <div class="campo-pw">
+                <label>Contraseña<input type="password" name="password" required minlength="8" maxlength="64" autocomplete="new-password" data-pw></label>
+                <?php render_requisitos_password(); ?>
+            </div>
             <label>Pregunta de seguridad
                 <select name="pregunta" required>
                     <option value="">Selecciona una pregunta...</option>
@@ -116,7 +144,7 @@ if ($_POST) {
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>Respuesta<input name="respuesta" required></label>
+            <label class="campo-ancho">Respuesta<input name="respuesta" required></label>
             <p class="auth-subtitle">La pregunta de seguridad sirve para recuperar tu contraseña si la olvidas.</p>
             <label class="check-label"><input type="checkbox" name="acepta_politica" value="1" required <?= !empty($_POST['acepta_politica']) ? 'checked' : '' ?>><span>He leído y acepto la <a href="politica.php" target="_blank" rel="noopener">política de tratamiento de datos personales</a> (versión <?= htmlspecialchars(POLITICA_VERSION) ?>).</span></label>
             <p class="pending-notice">Tu cuenta requiere la aprobación de un administrador antes de que puedas iniciar sesión.</p>
@@ -124,6 +152,8 @@ if ($_POST) {
             <p class="auth-link">¿Ya tienes cuenta? <a href="login.php">Iniciar sesión</a></p>
         </form>
     </div>
+
+    <?php render_ayuda(); ?>
 
 </body>
 

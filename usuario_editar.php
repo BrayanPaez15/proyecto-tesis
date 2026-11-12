@@ -23,7 +23,7 @@ require_admin();
 $modulos = require "includes/modulos.php";
 
 $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-$stmt = $conn->prepare("SELECT * FROM usuarios WHERE id = ?");
+$stmt = $conn->prepare("SELECT *, id_usuario AS id FROM usuarios WHERE id_usuario = ?");
 $stmt->bind_param("i", $id);
 $stmt->execute();
 $usuario = $stmt->get_result()->fetch_assoc();
@@ -50,7 +50,7 @@ if ($_POST) {
         } elseif (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
             $error = "El correo no tiene un formato válido.";
         } else {
-            $check = $conn->prepare("SELECT id FROM usuarios WHERE correo = ? AND id <> ?");
+            $check = $conn->prepare("SELECT id_usuario AS id FROM usuarios WHERE correo = ? AND id_usuario <> ?");
             $check->bind_param("si", $correo, $id);
             $check->execute();
             $check->store_result();
@@ -71,7 +71,7 @@ if ($_POST) {
             if ($id === (int) $_SESSION['usuario_id']) {
                 $error = "No puedes quitarle el acceso a tu propia cuenta.";
             } elseif ($usuario['rol'] === 'admin') {
-                $otros = $conn->prepare("SELECT COUNT(*) AS total FROM usuarios WHERE rol = 'admin' AND estado = 'aprobado' AND id <> ?");
+                $otros = $conn->prepare("SELECT COUNT(*) AS total FROM usuarios WHERE rol = 'admin' AND estado = 'aprobado' AND id_usuario <> ?");
                 $otros->bind_param("i", $id);
                 $otros->execute();
                 if ((int) $otros->get_result()->fetch_assoc()['total'] === 0) {
@@ -82,7 +82,7 @@ if ($_POST) {
         }
 
         if ($error === '') {
-            $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, correo = ?, rol = ?, estado = ?, puede_importar = ? WHERE id = ?");
+            $stmt = $conn->prepare("UPDATE usuarios SET nombre = ?, correo = ?, rol = ?, estado = ?, puede_importar = ? WHERE id_usuario = ?");
             $stmt->bind_param("ssssii", $nombre, $correo, $rol, $estado, $puedeImportar, $id);
             $stmt->execute();
             $stmt->close();
@@ -117,7 +117,7 @@ if ($_POST) {
             // $error ya tiene el mensaje
         } else {
             $hash = password_hash($nueva, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
+            $stmt = $conn->prepare("UPDATE usuarios SET password = ?, intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = ?");
             $stmt->bind_param("si", $hash, $id);
             $stmt->execute();
             $stmt->close();
@@ -125,7 +125,7 @@ if ($_POST) {
             exit;
         }
     } elseif (isset($_POST['desbloquear'])) {
-        $stmt = $conn->prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id_usuario = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
         $stmt->close();
@@ -143,10 +143,10 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
 <head>
   <meta charset="UTF-8">
   <title>Editar usuario - SIRAD</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="js/animations.js" defer></script>
-  <script src="js/toast.js" defer></script>
-  <script src="js/password.js" defer></script>
+  <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
+  <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/toast.js?v=<?= @filemtime(__DIR__ . '/js/toast.js') ?>" defer></script>
+  <script src="js/password.js?v=<?= @filemtime(__DIR__ . '/js/password.js') ?>" defer></script>
 </head>
 
 <body>
@@ -165,6 +165,9 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
     <form class="form-card" method="POST">
       <?php csrf_field(); ?>
       <input type="hidden" name="id" value="<?= (int) $usuario['id'] ?>">
+      <?php if (!empty($usuario['motivo_solicitud'])): ?>
+        <p class="nota-motivo"><strong>Motivo de la solicitud:</strong> <?= htmlspecialchars($usuario['motivo_solicitud']) ?></p>
+      <?php endif; ?>
       <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($usuario['nombre']) ?>"></label>
       <label>Correo<input name="correo" type="email" required value="<?= htmlspecialchars($usuario['correo']) ?>"></label>
       <label>Rol

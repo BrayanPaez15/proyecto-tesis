@@ -29,3 +29,11 @@ ServerSignature Off
 <FilesMatch "^(config|config\.local|conexion|auth)\.php$">
     Require all denied
 </FilesMatch>
+
+# Hojas de estilo y scripts: el navegador los revalida siempre (las paginas ademas los piden con ?v=fecha del archivo),
+# asi un cambio en el sistema se ve de inmediato sin tener que vaciar la cache.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>

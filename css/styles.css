@@ -157,7 +157,8 @@ h1 {
 }
 
 .form-card input,
-.form-card select {
+.form-card select,
+.form-card textarea {
     padding: 10px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -733,9 +734,8 @@ tbody tr:hover td {
     margin: 2px 4px 2px 0;
 }
 
-/* Panel principal: segundo boton «Ver registros» debajo de «Ingresar» */
+/* Panel principal: segundo boton «Ver registros» junto a «Ingresar» */
 .card a.ver-registros {
-    margin-top: 10px;
     background: #eef2ff;
     color: #1f2937;
     border: 1px solid #c7d2fe;
@@ -792,3 +792,88 @@ tbody tr:hover td {
 .pw-rules li::before { content: "\25CB"; position: absolute; left: 2px; color: #9ca3af; }
 .pw-rules li.ok { color: #166534; }
 .pw-rules li.ok::before { content: "\2713"; color: #16a34a; }
+
+/* Motivo de la solicitud de cuenta */
+.form-card textarea { resize: vertical; min-height: 70px; line-height: 1.35; }
+.motivo { display: block; margin-top: 4px; font-size: 12px; font-weight: normal; color: #6b7280; white-space: normal; max-width: 320px; }
+.motivo strong { color: #374151; }
+.nota-motivo { grid-column: 1 / -1; margin: 0; padding: 10px 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px; color: #374151; }
+
+/* Diseno adaptable: el encabezado y las tarjetas se acomodan en pantallas pequenas */
+.header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
+
+@media (max-width: 900px) {
+    header { padding: 12px 20px; }
+    .header-actions { gap: 8px 14px; font-size: 13px; }
+    main { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (max-width: 640px) {
+    header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 14px; position: static; }
+    .header-actions { justify-content: flex-start; }
+    .form-card { grid-template-columns: 1fr; padding: 16px; }
+    .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .page-actions { flex-wrap: wrap; }
+}
+
+/* Formulario de registro en dos columnas para que quepa en una pantalla */
+.auth-card.auth-ancho { max-width: 700px; grid-template-columns: 1fr 1fr; column-gap: 16px; row-gap: 10px; padding: 18px 24px; }
+.auth-card.auth-ancho > h1,
+.auth-card.auth-ancho > .auth-subtitle,
+.auth-card.auth-ancho > .auth-error,
+.auth-card.auth-ancho > .auth-success,
+.auth-card.auth-ancho > .pending-notice,
+.auth-card.auth-ancho > .pw-meter,
+.auth-card.auth-ancho > .check-label,
+.auth-card.auth-ancho > .auth-link,
+.auth-card.auth-ancho > .campo-ancho { grid-column: 1 / -1; }
+.auth-card.auth-ancho > .pending-notice { margin: 0; padding: 8px 12px; font-size: 13px; }
+.auth-card.auth-ancho > .auth-subtitle { margin: 0; }
+/* En el registro el nivel de la contrasena flota bajo el campo (no empuja los demas campos ni ocupa todo el ancho) */
+.campo-pw { position: relative; }
+.campo-pw .pw-meter { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; margin: 2px 0 0; padding: 8px 10px; background: #fff; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, .15); }
+.campo-pw .pw-meter[hidden] { display: none; }
+@media (max-width: 640px) { .auth-card.auth-ancho { grid-template-columns: 1fr; } }
+
+/* Manual de uso fijo en la esquina inferior derecha (includes/ayuda.php, js/ayuda.js) */
+.ayuda-barra { position: fixed; right: 18px; bottom: 18px; z-index: 3000; display: flex; align-items: center; gap: 10px; }
+.ayuda-whatsapp { display: flex; align-items: center; gap: 8px; width: 52px; height: 52px; justify-content: center; position: relative; border-radius: 50%; background: #25d366; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 6px 18px rgba(18, 140, 70, .4); transition: transform .2s ease, box-shadow .2s ease; }
+.ayuda-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(18, 140, 70, .5); color: #fff; }
+.ayuda-whatsapp:focus-visible { outline: 3px solid #fbbf24; outline-offset: 2px; }
+.ayuda-whatsapp svg { width: 36px; height: 36px; padding: 5px; border-radius: 50%; background: #fff; fill: #25d366; box-sizing: border-box; }
+.ayuda-boton { display: flex; align-items: center; justify-content: center; position: relative; width: 52px; height: 52px; padding: 0; border: none; border-radius: 50%; background: linear-gradient(120deg, #1d4ed8, #4338ca); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(30, 64, 175, .4); transition: transform .2s ease, box-shadow .2s ease; }
+.ayuda-boton:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(30, 64, 175, .5); }
+.ayuda-boton:focus-visible { outline: 3px solid #fbbf24; outline-offset: 2px; }
+.ayuda-texto { position: absolute; bottom: calc(100% + 10px); right: 0; padding: 6px 10px; border-radius: 8px; background: #1f2937; color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .15s ease, transform .15s ease; }
+.ayuda-boton:hover .ayuda-texto, .ayuda-boton:focus-visible .ayuda-texto, .ayuda-whatsapp:hover .ayuda-texto, .ayuda-whatsapp:focus-visible .ayuda-texto { opacity: 1; transform: none; }
+.ayuda-icono { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #fff; color: #1d4ed8; font-size: 20px; font-weight: 800; }
+.ayuda-panel { position: fixed; right: 18px; bottom: 84px; z-index: 3000; width: 420px; max-width: calc(100vw - 36px); height: min(640px, calc(100vh - 110px)); display: flex; flex-direction: column; background: #fff; border-radius: 14px; box-shadow: 0 14px 40px rgba(15, 23, 42, .3); border: 1px solid #e5e7eb; overflow: hidden; }
+.ayuda-panel[hidden] { display: none; }
+.ayuda-cabecera { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: linear-gradient(120deg, #1d4ed8, #4338ca); color: #fff; font-size: 15px; }
+.ayuda-cerrar { border: none; background: transparent; color: #fff; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.ayuda-buscar { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; }
+.ayuda-buscar input { width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+.ayuda-buscar input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.ayuda-cuerpo { flex: 1; overflow-y: auto; padding: 8px 12px 16px; position: relative; font-size: 14px; line-height: 1.5; color: #1f2937; }
+.ayuda-seccion { border-bottom: 1px solid #eef0f4; }
+.ayuda-seccion[hidden] { display: none; }
+.ayuda-seccion > summary { cursor: pointer; padding: 11px 4px; font-weight: 700; color: #1d4ed8; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.ayuda-seccion > summary::-webkit-details-marker { display: none; }
+.ayuda-seccion > summary::after { content: "+"; font-size: 18px; color: #6b7280; }
+.ayuda-seccion[open] > summary::after { content: "\2013"; }
+.ayuda-contenido { padding: 0 4px 12px; }
+.ayuda-contenido p { margin: 6px 0; }
+.ayuda-contenido ol, .ayuda-contenido ul { margin: 6px 0; padding-left: 20px; }
+.ayuda-contenido li { margin: 4px 0; }
+.ayuda-nota { background: #eff6ff; border-left: 3px solid #2563eb; padding: 8px 10px; border-radius: 0 8px 8px 0; font-size: 13px; }
+.ayuda-faq { margin: 4px 0; }
+.ayuda-faq > summary { cursor: pointer; font-weight: 600; color: #374151; }
+.ayuda-vacio { color: #6b7280; text-align: center; margin-top: 18px; }
+@media (max-width: 640px) {
+    .ayuda-barra { right: 12px; bottom: 12px; gap: 8px; }
+    .ayuda-boton, .ayuda-whatsapp { width: 46px; height: 46px; }
+    .ayuda-panel { right: 0; left: 0; bottom: 0; top: 0; width: auto; max-width: none; height: auto; border-radius: 0; }
+    body.ayuda-abierta .ayuda-barra { display: none; }
+}
+@media print { .ayuda-barra, .ayuda-boton, .ayuda-panel { display: none !important; } }
+

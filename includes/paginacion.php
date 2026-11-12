@@ -9,6 +9,8 @@
  * registros haya. Los parametros GET son «q» (texto) y «pagina».
  */
 
+require_once __DIR__ . '/contactos.php';
+
 const POR_PAGINA = 50;
 
 function termino_busqueda(): string
@@ -23,17 +25,13 @@ function pagina_solicitada(): int
 
 /**
  * Devuelve [filas, total, pagina, paginas] del modulo indicado (clave de includes/modulos.php),
- * filtrando por $q en todas sus columnas. La tabla y las columnas salen del catalogo de modulos,
+ * filtrando por $q en todas sus columnas. El origen de los datos y las columnas salen del catalogo de modulos,
  * nunca de la peticion.
  */
 function consulta_paginada(mysqli $conn, string $clave, string $q, int $pagina): array
 {
-    $modulos = require __DIR__ . '/modulos.php';
-    if (!isset($modulos[$clave])) {
-        throw new InvalidArgumentException('Modulo no valido');
-    }
-    $tabla = $modulos[$clave]['tabla'];
-    $columnas = array_keys($modulos[$clave]['columnas']);
+    $columnas = array_keys(modulo_def($clave)['columnas']);
+    $origen = origen_modulo($clave);
 
     $donde = '';
     $tipos = '';
@@ -49,7 +47,7 @@ function consulta_paginada(mysqli $conn, string $clave, string $q, int $pagina):
         $donde = ' WHERE ' . implode(' OR ', $condiciones);
     }
 
-    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM `$tabla`$donde");
+    $stmt = $conn->prepare("SELECT COUNT(*) AS total FROM $origen$donde");
     if ($params) {
         $stmt->bind_param($tipos, ...$params);
     }
@@ -61,7 +59,7 @@ function consulta_paginada(mysqli $conn, string $clave, string $q, int $pagina):
     $pagina = min($pagina, $paginas);
     $offset = ($pagina - 1) * POR_PAGINA;
 
-    $stmt = $conn->prepare("SELECT * FROM `$tabla`$donde ORDER BY id DESC LIMIT " . POR_PAGINA . " OFFSET $offset");
+    $stmt = $conn->prepare("SELECT * FROM $origen$donde ORDER BY m.id DESC LIMIT " . POR_PAGINA . " OFFSET $offset");
     if ($params) {
         $stmt->bind_param($tipos, ...$params);
     }

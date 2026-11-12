@@ -21,7 +21,7 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 include_once __DIR__ . '/conexion.php';
-$stmtSesion = $conn->prepare("SELECT nombre, rol, estado, puede_importar, permisos_modulos FROM usuarios WHERE id = ?");
+$stmtSesion = $conn->prepare("SELECT nombre, rol, estado, puede_importar, permisos_modulos FROM usuarios WHERE id_usuario = ?");
 $idSesion = (int) $_SESSION['usuario_id'];
 $stmtSesion->bind_param("i", $idSesion);
 $stmtSesion->execute();
@@ -31,7 +31,9 @@ $stmtSesion->close();
 if (!$cuentaSesion || $cuentaSesion['estado'] !== 'aprobado') {
     session_unset();
     session_destroy();
-    header("Location: login.php");
+    // Rechazada o eliminada: el login explica que debe comunicarse con el administrador.
+    $aviso = !$cuentaSesion ? 'eliminada' : ($cuentaSesion['estado'] === 'rechazado' ? 'rechazada' : '');
+    header("Location: login.php" . ($aviso !== '' ? '?aviso=' . $aviso : ''));
     exit;
 }
 $_SESSION['usuario_nombre'] = $cuentaSesion['nombre'];

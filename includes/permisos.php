@@ -80,7 +80,7 @@ function permisos_decodificar(?string $json): array
 /** Permisos de un usuario como [modulo => ['ver' => bool, 'registrar' => bool]]. */
 function permisos_de_usuario(mysqli $conn, int $usuarioId): array
 {
-    $stmt = $conn->prepare("SELECT permisos_modulos FROM usuarios WHERE id = ?");
+    $stmt = $conn->prepare("SELECT permisos_modulos FROM usuarios WHERE id_usuario = ?");
     $stmt->bind_param("i", $usuarioId);
     $stmt->execute();
     $fila = $stmt->get_result()->fetch_assoc();
@@ -99,7 +99,7 @@ function permisos_guardar(mysqli $conn, int $usuarioId, array $modulosValidos, a
         }
     }
     $json = $mapa ? json_encode($mapa, JSON_UNESCAPED_UNICODE) : null;
-    $stmt = $conn->prepare("UPDATE usuarios SET permisos_modulos = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE usuarios SET permisos_modulos = ? WHERE id_usuario = ?");
     $stmt->bind_param("si", $json, $usuarioId);
     $stmt->execute();
     $stmt->close();

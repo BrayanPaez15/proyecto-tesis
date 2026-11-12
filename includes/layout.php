@@ -12,6 +12,7 @@
 require_once __DIR__ . '/roles.php';
 require_once __DIR__ . '/permisos.php';
 require_once __DIR__ . '/alertas.php';
+require_once __DIR__ . '/ayuda.php';
 
 function render_header(bool $mostrarVolver = true): void
 {
@@ -42,6 +43,7 @@ function render_header(bool $mostrarVolver = true): void
     </div>
   </header>
     <?php
+    render_ayuda();
 }
 
 function render_page_actions(string $archivo, string $activo): void
