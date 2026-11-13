@@ -169,6 +169,9 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
       <?php if (!empty($usuario['motivo_solicitud'])): ?>
         <p class="nota-motivo"><strong>Motivo de la solicitud:</strong> <?= htmlspecialchars($usuario['motivo_solicitud']) ?></p>
       <?php endif; ?>
+      <?php if (acceso_texto($usuario['acceso_solicitado'] ?? null) !== ''): ?>
+        <p class="nota-motivo"><strong>Rol solicitado:</strong> <?= htmlspecialchars(acceso_texto($usuario['acceso_solicitado'])) ?> (es solo lo que pidió; usted define los permisos reales en la matriz de abajo).</p>
+      <?php endif; ?>
       <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($usuario['nombre']) ?>"></label>
       <label>Correo<input name="correo" type="email" required value="<?= htmlspecialchars($usuario['correo']) ?>"></label>
       <label>Rol

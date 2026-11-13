@@ -23,6 +23,7 @@ require_once "includes/ayuda.php";
 require_once "includes/politica.php";
 require_once "includes/password.php";
 require_once "includes/contacto.php";
+require_once "includes/accesos.php";
 
 if (isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
@@ -48,6 +49,7 @@ if ($_POST) {
     $correo = trim($_POST['correo']);
     $password = $_POST['password'];
     $motivo = trim((string) ($_POST['motivo'] ?? ''));
+    $acceso = trim((string) ($_POST['acceso'] ?? ''));
     $pregunta = trim($_POST['pregunta'] ?? '');
     $respuesta = trim($_POST['respuesta'] ?? '');
 
@@ -59,6 +61,8 @@ if ($_POST) {
         $error = "Todos los campos son obligatorios.";
     } elseif (mb_strlen($motivo) < 15 || mb_strlen($motivo) > 500) {
         $error = "Cuéntale al administrador quién eres y por qué necesitas acceso (entre 15 y 500 caracteres).";
+    } elseif (!isset(accesos_solicitables()[$acceso])) {
+        $error = "Selecciona el rol que necesitas: ver, registrar o ambos.";
     } elseif (!in_array($pregunta, $preguntas, true)) {
         $error = "Selecciona una pregunta de seguridad válida.";
     } elseif (($error = validar_password($password, $correo)) !== '') {
@@ -104,8 +108,8 @@ if ($_POST) {
         $estado = $esPrimero ? 'aprobado' : 'pendiente';
         $version = POLITICA_VERSION;
 
-        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, estado, pregunta_seguridad, respuesta_seguridad_hash, politica_version, politica_aceptada_en, motivo_solicitud, ip_solicitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)");
-        $stmt->bind_param("ssssssssss", $nombre, $correo, $hash, $rol, $estado, $pregunta, $respuestaHash, $version, $motivo, $ipSolicitud);
+        $stmt = $conn->prepare("INSERT INTO usuarios (nombre, correo, password, rol, estado, pregunta_seguridad, respuesta_seguridad_hash, politica_version, politica_aceptada_en, motivo_solicitud, acceso_solicitado, ip_solicitud) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)");
+        $stmt->bind_param("sssssssssss", $nombre, $correo, $hash, $rol, $estado, $pregunta, $respuestaHash, $version, $motivo, $acceso, $ipSolicitud);
         $stmt->execute();
         $nuevoId = $conn->insert_id;
         $stmt->close();
@@ -147,6 +151,14 @@ $_SESSION['registro_reto'] = (string) ($retoA + $retoB);
             <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($_POST['nombre'] ?? '') ?>"></label>
             <label>Correo<input type="email" name="correo" required value="<?= htmlspecialchars($_POST['correo'] ?? '') ?>"></label>
             <label class="campo-ancho">¿Quién eres y por qué necesitas acceso?<textarea name="motivo" required minlength="15" maxlength="500" rows="2" placeholder="Ej.: Soy practicante de la Fundación y necesito registrar artistas del programa de lectura."><?= htmlspecialchars($_POST['motivo'] ?? '') ?></textarea></label>
+            <label class="campo-ancho">Rol
+                <select name="acceso" required>
+                    <option value="">Selecciona qué necesitas hacer...</option>
+                    <?php foreach (accesos_solicitables() as $clave => $texto): ?>
+                        <option value="<?= htmlspecialchars($clave) ?>" <?= (($_POST['acceso'] ?? '') === $clave) ? 'selected' : '' ?>><?= htmlspecialchars($texto) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <div class="campo-pw">
                 <label>Contraseña<input type="password" name="password" required minlength="8" maxlength="64" autocomplete="new-password" data-pw></label>
                 <?php render_requisitos_password(); ?>

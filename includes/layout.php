@@ -18,11 +18,19 @@ function render_header(bool $mostrarVolver = true): void
 {
     global $conn;
     $rolLabel = is_admin() ? 'Administrador' : 'Usuario';
+    $sinLeer = is_admin() ? alertas_pendientes($conn) : 0;
     ?>
   <header>
     <div class="logo">SIRAD</div>
-    <div class="header-actions">
-      <span>Hola, <?= htmlspecialchars($_SESSION['usuario_nombre']) ?> <span class="badge"><?= $rolLabel ?></span></span>
+    <div class="header-usuario">
+      <span class="saludo"><span class="saludo-linea">Hola, <span class="saludo-nombre"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></span></span> <span class="badge"><?= $rolLabel ?></span></span>
+      <button type="button" class="menu-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-principal">
+        <svg class="icono-abrir" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
+        <svg class="icono-cerrar" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
+        <?php if ($sinLeer > 0): ?><span class="badge-count menu-aviso"><?= $sinLeer ?></span><?php endif; ?>
+      </button>
+    </div>
+    <div class="header-actions" id="menu-principal">
       <?php if (tiene_algun_permiso()): ?>
       <a href="buscar.php">Buscar</a>
       <?php endif; ?>
@@ -33,7 +41,6 @@ function render_header(bool $mostrarVolver = true): void
       <a href="usuarios.php">Usuarios</a>
       <a href="etiquetas.php">Etiquetas</a>
       <a href="reportes.php">Reportes</a>
-      <?php $sinLeer = alertas_pendientes($conn); ?>
       <a href="alertas.php">Alertas<?php if ($sinLeer > 0): ?> <span class="badge-count"><?= $sinLeer ?></span><?php endif; ?></a>
       <?php endif; ?>
       <?php if ($mostrarVolver): ?>
@@ -42,6 +49,7 @@ function render_header(bool $mostrarVolver = true): void
       <a href="logout.php">Cerrar sesión</a>
     </div>
   </header>
+  <script src="js/menu.js?v=<?= @filemtime(dirname(__DIR__) . '/js/menu.js') ?>" defer></script>
     <?php
     if (is_admin() && ($cola = cola_solicitudes($conn))):
         ?>

@@ -101,9 +101,9 @@ if ($_POST) {
   <script src="js/mensajes.js?v=<?= @filemtime(__DIR__ . '/js/mensajes.js') ?>" defer></script>
 </head>
 
-<body>
+<body class="pagina-fija">
 
-    <div class="auth-page">
+    <div class="auth-page auth-fija">
         <form class="form-card auth-card" method="POST">
             <h1>SIRAD</h1>
             <p class="auth-subtitle">Sistema de Registro y Administración de Directorios</p>

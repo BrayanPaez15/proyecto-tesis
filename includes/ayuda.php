@@ -51,6 +51,7 @@ function ayuda_secciones(): array
           <li>En la pantalla de inicio de sesión haga clic en <b>Crear usuario</b>.</li>
           <li>Escriba su <b>nombre</b> y su <b>correo</b>.</li>
           <li>En <b>«¿Quién eres y por qué necesitas acceso?»</b> cuente en una o dos frases quién es, de qué organización y para qué usará el sistema (de 15 a 500 caracteres). El administrador lo lee para decidir si aprueba su cuenta.</li>
+          <li>En <b>Rol</b> elija qué necesita hacer: <b>ver</b> (consultar registros), <b>registrar</b> (agregar registros) o <b>ver y registrar</b>. Es solo una petición: el administrador decide los permisos que le da.</li>
           <li>Escriba una <b>contraseña segura</b> (vea «Contraseñas seguras») y elija una <b>pregunta de seguridad</b> con su respuesta: sirve para recuperar la contraseña si la olvida.</li>
           <li>Responda la <b>verificación</b>: una suma sencilla, por ejemplo «¿cuánto es 4 + 7?». La pregunta cambia en cada visita; si se equivoca, el sistema le muestra una nueva.</li>
           <li>Lea la política de tratamiento de datos personales y marque la casilla de aceptación; sin aceptarla no se crea la cuenta.</li>

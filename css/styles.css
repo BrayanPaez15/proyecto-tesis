@@ -63,12 +63,6 @@ header a:hover::after {
     width: 100%;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    font-size: 14px;
-}
 
 .badge {
     display: inline-block;
@@ -452,6 +446,7 @@ tbody tr:hover td {
 
 .auth-page {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -800,17 +795,13 @@ tbody tr:hover td {
 .nota-motivo { grid-column: 1 / -1; margin: 0; padding: 10px 12px; background: #f3f4f6; border-radius: 8px; font-size: 13px; color: #374151; }
 
 /* Diseno adaptable: el encabezado y las tarjetas se acomodan en pantallas pequenas */
-.header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
 
 @media (max-width: 900px) {
     header { padding: 12px 20px; }
-    .header-actions { gap: 8px 14px; font-size: 13px; }
     main { padding-left: 16px; padding-right: 16px; }
 }
 
 @media (max-width: 640px) {
-    header { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 14px; position: static; }
-    .header-actions { justify-content: flex-start; }
     .form-card { grid-template-columns: 1fr; padding: 16px; }
     .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .page-actions { flex-wrap: wrap; }
@@ -895,3 +886,36 @@ tbody tr:hover td {
 .auth-error a.enlace-contacto { display: inline-block; margin-top: 6px; padding: 5px 14px; border-radius: 999px; background: #7f1d1d; color: #fff; text-decoration: none; word-break: normal; }
 .auth-error a.enlace-contacto:hover, .auth-error a.enlace-contacto:focus-visible { filter: brightness(1.15); }
 .auth-error a.enlace-wa { background: #0f7a5f; }
+
+/* inicio de sesion: pagina fija, sin desplazamiento; solo se desplaza por dentro si la pantalla es tan baja que no cabe la tarjeta */
+body.pagina-fija { overflow: hidden; overscroll-behavior: none; }
+.auth-page.auth-fija { height: 100vh; height: 100dvh; min-height: 0; overflow-y: auto; overscroll-behavior: none; }
+
+/* Encabezado: logo, saludo y boton de menu; los enlaces van en un menu desplegable en computador y en celular */
+header { position: sticky; }
+header .header-usuario { display: flex; align-items: center; gap: 12px; margin-left: auto; min-width: 0; font-size: 14px; }
+header .saludo { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+header .saludo-linea { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-toggle { display: inline-flex; align-items: center; justify-content: center; position: relative; flex: none; width: 44px; height: 44px; padding: 0; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.16); color: #fff; cursor: pointer; transition: background 0.2s ease; }
+.menu-toggle:hover { background: rgba(255, 255, 255, 0.28); }
+.menu-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.menu-toggle .icono-cerrar, .menu-toggle[aria-expanded="true"] .icono-abrir { display: none; }
+.menu-toggle[aria-expanded="true"] .icono-cerrar { display: block; }
+.menu-toggle .menu-aviso { position: absolute; top: -6px; right: -6px; }
+.header-actions { display: none; position: absolute; top: 100%; right: 0; width: 280px; flex-direction: column; align-items: stretch; gap: 0; padding: 4px 0 8px; font-size: 16px; border-radius: 0 0 14px 14px; background: linear-gradient(120deg, #1e40af, #3730a3); box-shadow: 0 12px 24px rgba(30, 64, 175, 0.35); max-height: calc(100vh - 70px); max-height: calc(100dvh - 70px); overflow-y: auto; }
+header.menu-abierto .header-actions { display: flex; }
+.header-actions > * { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px 20px; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.header-actions > *:first-child { border-top: 0; }
+.header-actions a::after { display: none; }
+.header-actions a:hover { background: rgba(255, 255, 255, 0.1); opacity: 1; }
+@media (max-width: 640px) {
+    header { padding: 8px 14px; gap: 8px; }
+    header .logo { font-size: 18px; }
+    header .header-usuario { gap: 8px; font-size: 13px; flex: 1 1 auto; justify-content: flex-end; }
+    header .saludo { flex-direction: column; align-items: flex-end; gap: 3px; line-height: 1.2; }
+    header .saludo .badge { font-size: 11px; padding: 2px 8px; }
+    .header-actions { left: 0; width: auto; border-radius: 0; }
+}
+
+/* con el menu abierto, el encabezado queda por encima del manual y de los botones flotantes */
+header.menu-abierto { z-index: 3500; }

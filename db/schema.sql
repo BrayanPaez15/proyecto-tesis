@@ -51,6 +51,7 @@ CREATE TABLE `usuarios` (
   `reset_enviado_en` datetime DEFAULT NULL,
   `motivo_solicitud` varchar(500) DEFAULT NULL,
   `ip_solicitud` varchar(45) DEFAULT NULL,
+  `acceso_solicitado` varchar(20) DEFAULT NULL,
   `importaciones_desde` datetime DEFAULT NULL,
   `importaciones_cuenta` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_usuario`),

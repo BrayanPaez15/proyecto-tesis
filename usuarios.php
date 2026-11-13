@@ -109,7 +109,7 @@ if (isset($_POST['permiso_importar'])) {
     exit;
 }
 
-$r = $conn->query("SELECT u.id_usuario AS id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos, u.motivo_solicitud
+$r = $conn->query("SELECT u.id_usuario AS id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos, u.motivo_solicitud, u.acceso_solicitado
     FROM usuarios u ORDER BY FIELD(u.estado, 'pendiente', 'aprobado', 'rechazado'), u.nombre");
 $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total'];
 ?>
@@ -169,6 +169,9 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
               <td><?= htmlspecialchars($u['nombre']) ?>
                 <?php if (!empty($u['motivo_solicitud'])): ?>
                   <span class="motivo"><strong>Motivo:</strong> <?= htmlspecialchars($u['motivo_solicitud']) ?></span>
+                <?php endif; ?>
+                <?php if (acceso_texto($u['acceso_solicitado'] ?? null) !== ''): ?>
+                  <span class="motivo"><strong>Rol solicitado:</strong> <?= htmlspecialchars(acceso_texto($u['acceso_solicitado'])) ?></span>
                 <?php endif; ?>
               </td>
               <td><?= htmlspecialchars($u['correo']) ?></td>
