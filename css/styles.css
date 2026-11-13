@@ -890,3 +890,8 @@ tbody tr:hover td {
 
 /* importar.php: formulario sin cupo de importaciones */
 .form-card button:disabled, .form-card input:disabled { opacity: .5; cursor: not-allowed; }
+
+/* enlace de contacto de los avisos: boton en lugar de la direccion */
+.auth-error a.enlace-contacto { display: inline-block; margin-top: 6px; padding: 5px 14px; border-radius: 999px; background: #7f1d1d; color: #fff; text-decoration: none; word-break: normal; }
+.auth-error a.enlace-contacto:hover, .auth-error a.enlace-contacto:focus-visible { filter: brightness(1.15); }
+.auth-error a.enlace-wa { background: #0f7a5f; }

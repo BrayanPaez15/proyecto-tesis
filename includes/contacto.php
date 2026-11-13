@@ -35,13 +35,19 @@ function frase_contacto(mysqli $conn): string
     return $c === '' ? ' Comunícate con el administrador.' : ' Comunícate con el administrador por este medio: ' . $c;
 }
 
-/** Escapa el texto y vuelve clicables los enlaces http(s) que contenga (se abren en otra pestaña). */
+/**
+ * Escapa el texto y vuelve clicables los enlaces http(s) que contenga (se abren en otra pestana) sin mostrar
+ * la direccion: «WhatsApp https://wa.me/...» queda como el boton «Chat de WhatsApp» y cualquier otro
+ * enlace como «Abrir enlace».
+ */
 function aviso_con_enlaces(string $texto): string
 {
     $seguro = htmlspecialchars($texto, ENT_QUOTES, 'UTF-8');
-    return preg_replace_callback('~https?://[^\s<]+~i', function ($m) {
-        $url = rtrim($m[0], '.,;:)');
-        $resto = substr($m[0], strlen($url));
-        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $url . '</a>' . $resto;
+    return preg_replace_callback('~(WhatsApp )?(https?://[^\s<]+)~i', function ($m) {
+        $url = rtrim($m[2], '.,;:)');
+        $resto = substr($m[2], strlen($url));
+        $esWhatsapp = $m[1] !== '' || stripos($url, 'wa.me/') !== false;
+        return '<a class="enlace-contacto' . ($esWhatsapp ? ' enlace-wa' : '') . '" href="' . $url . '" target="_blank" rel="noopener noreferrer">'
+            . ($esWhatsapp ? 'Chat de WhatsApp' : 'Abrir enlace') . '</a>' . $resto;
     }, $seguro);
 }
