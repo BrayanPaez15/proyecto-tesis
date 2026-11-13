@@ -38,6 +38,7 @@ $agendaPorRegistro = agenda_por_registro($conn, 'artistas', $idsPagina);
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Artistas - Registros - SIRAD</title>
   <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
   <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
