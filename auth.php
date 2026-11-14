@@ -32,7 +32,7 @@ if (!$cuentaSesion || $cuentaSesion['estado'] !== 'aprobado') {
     session_unset();
     session_destroy();
     // Rechazada o eliminada: el login explica que debe comunicarse con el administrador.
-    $aviso = !$cuentaSesion ? 'eliminada' : ($cuentaSesion['estado'] === 'rechazado' ? 'rechazada' : '');
+    $aviso = !$cuentaSesion ? 'eliminada' : ($cuentaSesion['estado'] === 'rechazado' ? 'rechazada' : ($cuentaSesion['estado'] === 'baja' ? 'baja' : ''));
     header("Location: login.php" . ($aviso !== '' ? '?aviso=' . $aviso : ''));
     exit;
 }

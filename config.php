@@ -6,15 +6,16 @@
  * mostrar errores de PHP en pantalla, se registran en logs/php-error.log.
  */
 // Ajustes propios de cada instalacion (credenciales de correo, URL publica): config.local.php,
-// que no se sube al repositorio. Lo que defina alli tiene prioridad sobre los valores de abajo.
+// que no se sube al repositorio. Lo que defina alli tiene prioridad sobre los valores de abajo (tambien las
+// credenciales de la base de datos: DB_HOST, DB_USER, DB_PASS y DB_NAME).
 if (is_file(__DIR__ . '/config.local.php')) {
     require __DIR__ . '/config.local.php';
 }
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'directorio');
+defined('DB_HOST') || define('DB_HOST', 'localhost');
+defined('DB_USER') || define('DB_USER', 'root');
+defined('DB_PASS') || define('DB_PASS', '');
+defined('DB_NAME') || define('DB_NAME', 'directorio');
 
 // Correo (recuperacion de contrasena). MAIL_MODO 'archivo' guarda los mensajes en logs/correos/
 // (desarrollo); 'smtp' los envia por el servidor indicado (produccion). RECUPERAR_POR_CORREO: si es

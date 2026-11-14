@@ -27,11 +27,14 @@ if (isset($_SESSION['usuario_id'])) {
 
 $error = "";
 $errorPersistente = false;
+$exitoBaja = false;
 // Cuando auth.php cierra la sesion porque la cuenta fue rechazada o eliminada, llega con ?aviso=...
 $aviso = $_GET['aviso'] ?? '';
 if ($aviso === 'rechazada') {
     $error = "Tu solicitud de acceso fue rechazada." . frase_contacto($conn);
     $errorPersistente = true;
+} elseif ($aviso === 'baja') {
+    $exitoBaja = true;
 } elseif ($aviso === 'eliminada') {
     $error = "Tu usuario fue eliminado y ya no tienes acceso al sistema." . frase_contacto($conn);
     $errorPersistente = true;
@@ -51,6 +54,9 @@ if ($_POST) {
     if ($user && $bloqueadoHasta && strtotime($bloqueadoHasta) > time()) {
         $minutos = (int) ceil((strtotime($bloqueadoHasta) - time()) / 60);
         $error = "Cuenta bloqueada temporalmente por varios intentos fallidos. Intenta de nuevo en $minutos minuto(s).";
+    } elseif ($user && password_verify($password, $user['password']) && $user['estado'] === 'baja') {
+        $error = "Tu cuenta fue dada de baja. Si quieres volver a usar SIRAD, pídele al administrador que la reactive." . frase_contacto($conn);
+        $errorPersistente = true;
     } elseif ($user && password_verify($password, $user['password']) && $user['estado'] !== 'aprobado') {
         $error = $user['estado'] === 'pendiente'
             ? "Tu cuenta está pendiente de aprobación. Un administrador debe aprobarla antes de que puedas iniciar sesión."
@@ -106,10 +112,13 @@ if ($_POST) {
     <div class="auth-page auth-fija">
         <form class="form-card auth-card" method="POST">
             <h1>SIRAD</h1>
-            <p class="auth-subtitle">Sistema de Registro y Administración de Directorios</p>
+            <p class="auth-subtitle">Sistema de Registro y Administración de Directorios <span class="etiqueta-prototipo etiqueta-oscura">Prototipo</span></p>
 
             <?php if ($error): ?>
                 <p class="auth-error"<?= !empty($errorPersistente) ? ' data-persistente' : '' ?>><?= aviso_con_enlaces($error) ?></p>
+            <?php endif; ?>
+            <?php if ($exitoBaja): ?>
+                <p class="auth-success"><strong>Tu cuenta fue dada de baja.</strong> Gracias por haber usado SIRAD; el administrador recibió el motivo que escribiste.</p>
             <?php endif; ?>
             <?php if (($_GET['registrado'] ?? '') === 'pendiente'): ?>
                 <p class="auth-success"><strong>Solicitud enviada.</strong> Tu cuenta requiere la aprobación de un administrador. Cuando la apruebe podrás iniciar sesión con tu correo y contraseña; si no la aprueba, no tendrás acceso al sistema.</p>

@@ -70,12 +70,14 @@ if ($_POST) {
     } elseif (empty($_POST['acepta_politica'])) {
         $error = "Debes aceptar la política de tratamiento de datos personales para crear la cuenta.";
     } else {
-        $check = $conn->prepare("SELECT id_usuario AS id FROM usuarios WHERE correo = ?");
+        $check = $conn->prepare("SELECT estado FROM usuarios WHERE correo = ?");
         $check->bind_param("s", $correo);
         $check->execute();
-        $check->store_result();
-        if ($check->num_rows > 0) {
-            $error = "Ya existe una cuenta con ese correo.";
+        $check->bind_result($estadoExistente);
+        if ($check->fetch()) {
+            $error = $estadoExistente === 'baja'
+                ? "Esa cuenta fue dada de baja. Pídele al administrador que la reactive." . frase_contacto($conn)
+                : "Ya existe una cuenta con ese correo.";
         }
         $check->close();
 

@@ -77,13 +77,21 @@ function contar(mysqli $conn, string $modulo): int
             font-size: 15px;
         }
 
+        .nombre-sistema {
+            text-align: center;
+            margin: 0 20px 6px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #374151;
+        }
+
         .container {
             max-width: 1500px;
             margin: 0 auto;
             padding: 6px 28px 40px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+            gap: 16px;
         }
 
         .card {
@@ -94,7 +102,7 @@ function contar(mysqli $conn, string $modulo): int
             align-items: center;
             background: white;
             border-radius: 16px;
-            padding: 22px 18px 18px;
+            padding: 16px 14px 14px;
             box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
             text-align: center;
             transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -119,12 +127,12 @@ function contar(mysqli $conn, string $modulo): int
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 58px;
-            height: 58px;
-            border-radius: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
             background: #f1f5ff;
-            font-size: 30px;
-            margin-bottom: 12px;
+            font-size: 26px;
+            margin-bottom: 8px;
             transition: transform 0.25s ease;
         }
 
@@ -137,8 +145,8 @@ function contar(mysqli $conn, string $modulo): int
             align-items: center;
             justify-content: center;
             min-height: 2.5em;
-            margin: 0 0 8px;
-            font-size: 17px;
+            margin: 0 0 6px;
+            font-size: 16px;
             line-height: 1.25;
         }
 
@@ -154,7 +162,7 @@ function contar(mysqli $conn, string $modulo): int
         }
 
         .card p {
-            margin: 0 0 18px;
+            margin: 0 0 12px;
             font-size: 13px;
             line-height: 1.45;
             color: #6b7280;
@@ -263,6 +271,7 @@ function contar(mysqli $conn, string $modulo): int
     <?php render_header(false); ?>
 
     <h1>SIRAD</h1>
+    <h3 class="nombre-sistema">Sistema de Registro y Administración de Directorios</h3>
     <?php if (is_admin() && ($solicitudesPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total']) > 0): ?>
         <p class="pending-notice" style="max-width: 1444px; width: calc(100% - 56px); margin: 0 auto 14px;"><?= $solicitudesPendientes ?> solicitud<?= $solicitudesPendientes === 1 ? '' : 'es' ?> de cuenta pendiente<?= $solicitudesPendientes === 1 ? '' : 's' ?> de tu aprobación. <a href="usuarios.php">Aprobar o rechazar</a></p>
     <?php endif; ?>

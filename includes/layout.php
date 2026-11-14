@@ -21,7 +21,7 @@ function render_header(bool $mostrarVolver = true): void
     $sinLeer = is_admin() ? alertas_pendientes($conn) : 0;
     ?>
   <header>
-    <div class="logo">SIRAD</div>
+    <div class="logo"><span class="logo-sigla">SIRAD</span> <span class="logo-nombre">Sistema de Registro y Administración de Directorios</span> <span class="etiqueta-prototipo">Prototipo</span></div>
     <div class="header-usuario">
       <span class="saludo"><span class="saludo-linea">Hola, <span class="saludo-nombre"><?= htmlspecialchars($_SESSION['usuario_nombre']) ?></span></span> <span class="badge"><?= $rolLabel ?></span></span>
       <button type="button" class="menu-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu-principal">
@@ -46,6 +46,7 @@ function render_header(bool $mostrarVolver = true): void
       <?php if ($mostrarVolver): ?>
       <a href="index.php">&larr; Volver al directorio</a>
       <?php endif; ?>
+      <a href="baja.php">Darme de baja</a>
       <a href="logout.php">Cerrar sesión</a>
     </div>
   </header>

@@ -19,6 +19,7 @@ function alerta_tipos(): array
         'registro' => 'Cuenta creada',
         'inicio_sesion' => 'Inicio de sesión',
         'intento_pendiente' => 'Intento de acceso sin aprobar',
+        'baja' => 'Baja de cuenta',
     ];
 }
 
@@ -32,6 +33,8 @@ function alerta_detalle(array $e): string
             return "Nueva cuenta creada: $quien." . ($e['estado'] === 'pendiente' ? ' Pendiente de aprobación.' : '')
                 . (!empty($e['motivo']) ? ' Motivo: ' . $e['motivo'] : '')
                 . (acceso_texto($e['acceso'] ?? null) !== '' ? ' Rol solicitado: ' . acceso_texto($e['acceso']) . '.' : '');
+        case 'baja':
+            return "$quien se retiró del sistema (dio de baja su cuenta)." . (!empty($e['motivo']) ? ' Motivo: ' . $e['motivo'] : '');
         case 'intento_pendiente':
             return "$quien intentó iniciar sesión, pero su cuenta está " . ($e['estado'] === 'pendiente' ? 'pendiente de aprobación.' : 'rechazada.');
         default:
@@ -44,11 +47,13 @@ function alertas_eventos(mysqli $conn, int $adminId): array
 {
     $stmt = $conn->prepare("SELECT e.tipo, e.usuario_id, e.nombre, e.correo, e.estado, e.fecha, e.motivo, e.acceso,
             (e.fecha > COALESCE((SELECT alertas_vistas_hasta FROM usuarios WHERE id_usuario = ?), '1970-01-01 00:00:00')
-             AND (e.tipo = 'inicio_sesion' OR e.estado = 'pendiente')) AS sin_leer
+             AND (e.tipo IN ('inicio_sesion', 'baja') OR e.estado = 'pendiente')) AS sin_leer
         FROM (
             SELECT 'registro' AS tipo, id_usuario AS usuario_id, nombre, correo, estado, creado_en AS fecha, motivo_solicitud AS motivo, acceso_solicitado AS acceso FROM usuarios WHERE rol <> 'admin'
             UNION ALL
             SELECT 'intento_pendiente', id_usuario, nombre, correo, estado, ultimo_intento_pendiente, NULL, NULL FROM usuarios WHERE ultimo_intento_pendiente IS NOT NULL AND estado <> 'aprobado'
+            UNION ALL
+            SELECT 'baja', id_usuario, nombre, correo, estado, baja_en, baja_motivo, NULL FROM usuarios WHERE estado = 'baja' AND baja_en IS NOT NULL
             UNION ALL
             SELECT 'inicio_sesion', id_usuario, nombre, correo, estado, ultimo_acceso, NULL, NULL FROM usuarios WHERE ultimo_acceso IS NOT NULL AND rol <> 'admin'
         ) e

@@ -42,7 +42,7 @@ if ($_POST) {
         $nombre = trim($_POST['nombre']);
         $correo = trim($_POST['correo']);
         $rol = $_POST['rol'] === 'admin' ? 'admin' : 'usuario';
-        $estado = in_array($_POST['estado'] ?? '', ['pendiente', 'aprobado', 'rechazado'], true) ? $_POST['estado'] : $usuario['estado'];
+        $estado = in_array($_POST['estado'] ?? '', ['pendiente', 'aprobado', 'rechazado', 'baja'], true) ? $_POST['estado'] : $usuario['estado'];
         $puedeImportar = !empty($_POST['puede_importar']) ? 1 : 0;
 
         if ($nombre === '' || $correo === '') {
@@ -172,6 +172,9 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
       <?php if (acceso_texto($usuario['acceso_solicitado'] ?? null) !== ''): ?>
         <p class="nota-motivo"><strong>Rol solicitado:</strong> <?= htmlspecialchars(acceso_texto($usuario['acceso_solicitado'])) ?> (es solo lo que pidió; usted define los permisos reales en la matriz de abajo).</p>
       <?php endif; ?>
+      <?php if ($usuario['estado'] === 'baja' && !empty($usuario['baja_motivo'])): ?>
+        <p class="nota-motivo"><strong>Se dio de baja el <?= htmlspecialchars(date('Y-m-d H:i', strtotime((string) $usuario['baja_en']))) ?>:</strong> <?= htmlspecialchars($usuario['baja_motivo']) ?> (para que vuelva, cambie el estado a «Aprobada»).</p>
+      <?php endif; ?>
       <label>Nombre<input name="nombre" required value="<?= htmlspecialchars($usuario['nombre']) ?>"></label>
       <label>Correo<input name="correo" type="email" required value="<?= htmlspecialchars($usuario['correo']) ?>"></label>
       <label>Rol
@@ -185,6 +188,7 @@ $permisosUsuario = permisos_de_usuario($conn, $id);
           <option value="pendiente" <?= $usuario['estado'] === 'pendiente' ? 'selected' : '' ?>>Pendiente de aprobación</option>
           <option value="aprobado" <?= $usuario['estado'] === 'aprobado' ? 'selected' : '' ?>>Aprobada</option>
           <option value="rechazado" <?= $usuario['estado'] === 'rechazado' ? 'selected' : '' ?>>Rechazada</option>
+          <option value="baja" <?= $usuario['estado'] === 'baja' ? 'selected' : '' ?>>Baja (se retiró)</option>
         </select>
       </label>
       <label class="check-label"><input type="checkbox" name="puede_importar" value="1" <?= (int) $usuario['puede_importar'] === 1 ? 'checked' : '' ?>><span>Puede importar registros desde CSV (los administradores siempre pueden)</span></label>

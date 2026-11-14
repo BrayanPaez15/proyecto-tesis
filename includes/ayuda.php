@@ -164,6 +164,7 @@ function ayuda_secciones(): array
         <details class=\"ayuda-faq\"><summary>Importé un archivo y no se guardó nada.</summary><p>Revise que no supere el tamaño o las filas permitidas, que los encabezados sean los de la plantilla y que el archivo sea .xlsx o .csv.</p></details>
         <details class=\"ayuda-faq\"><summary>Me dice «Llegaste al límite de importaciones por hora».</summary><p>Cada usuario puede importar un número de archivos por hora. El aviso indica a qué hora podrá volver a importar; hasta entonces el botón está desactivado.</p></details>
         <details class=\"ayuda-faq\"><summary>El registro dice que la verificación no es correcta.</summary><p>Responda la suma que ve en el formulario en ese momento; cambia en cada visita y sirve una sola vez.</p></details>
+        <details class=\"ayuda-faq\"><summary>¿Cómo me retiro del sistema?</summary><p>Abra el menú de la parte superior y elija «Darme de baja»: escriba el motivo, confirme con su contraseña y su cuenta queda inactiva. El administrador ve el motivo y, si más adelante quiere volver, puede reactivarla.</p></details>
         <details class=\"ayuda-faq\"><summary>Mi cuenta quedó bloqueada.</summary><p>Espere 15 minutos o pida a un administrador que la desbloquee desde Usuarios → Editar.</p></details>"];
 
     $publicas = ['cuenta', 'ingresar', 'contrasena', 'recuperar', 'faq'];

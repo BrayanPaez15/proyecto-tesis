@@ -109,8 +109,8 @@ if (isset($_POST['permiso_importar'])) {
     exit;
 }
 
-$r = $conn->query("SELECT u.id_usuario AS id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos, u.motivo_solicitud, u.acceso_solicitado
-    FROM usuarios u ORDER BY FIELD(u.estado, 'pendiente', 'aprobado', 'rechazado'), u.nombre");
+$r = $conn->query("SELECT u.id_usuario AS id, u.nombre, u.correo, u.rol, u.estado, u.puede_importar, u.politica_version, u.politica_aceptada_en, u.intentos_fallidos, u.bloqueado_hasta, u.creado_en, u.permisos_modulos, u.motivo_solicitud, u.acceso_solicitado, u.baja_motivo, u.baja_en
+    FROM usuarios u ORDER BY FIELD(u.estado, 'pendiente', 'aprobado', 'rechazado', 'baja'), u.nombre");
 $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'pendiente'")->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
@@ -173,6 +173,9 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
                 <?php if (acceso_texto($u['acceso_solicitado'] ?? null) !== ''): ?>
                   <span class="motivo"><strong>Rol solicitado:</strong> <?= htmlspecialchars(acceso_texto($u['acceso_solicitado'])) ?></span>
                 <?php endif; ?>
+                <?php if ($u['estado'] === 'baja' && !empty($u['baja_motivo'])): ?>
+                  <span class="motivo"><strong>Se retiró el <?= htmlspecialchars(date('Y-m-d', strtotime((string) $u['baja_en']))) ?>:</strong> <?= htmlspecialchars($u['baja_motivo']) ?></span>
+                <?php endif; ?>
               </td>
               <td><?= htmlspecialchars($u['correo']) ?></td>
               <td><span class="pill <?= $esAdminFila ? 'pill-admin' : '' ?>"><?= $esAdminFila ? 'Administrador' : 'Usuario' ?></span></td>
@@ -181,6 +184,8 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
                   <span class="pill pill-pending">Pendiente</span>
                 <?php elseif ($u['estado'] === 'rechazado'): ?>
                   <span class="pill pill-blocked">Rechazada</span>
+                <?php elseif ($u['estado'] === 'baja'): ?>
+                  <span class="pill pill-blocked">Baja</span>
                 <?php else: ?>
                   <span class="pill <?= $bloqueado ? 'pill-blocked' : '' ?>"><?= $bloqueado ? 'Bloqueada' : 'Activa' ?></span>
                 <?php endif; ?>
@@ -220,7 +225,7 @@ $totalPendientes = (int) $conn->query("SELECT COUNT(*) AS total FROM usuarios WH
                   <form method="POST" style="display:inline">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="usuario_id" value="<?= (int) $u['id'] ?>">
-                    <button type="submit" name="cambiar_estado" value="aprobado" class="btn-edit">Aprobar</button>
+                    <button type="submit" name="cambiar_estado" value="aprobado" class="btn-edit"><?= $u['estado'] === 'baja' ? 'Reactivar' : 'Aprobar' ?></button>
                     <?php if ($u['estado'] === 'pendiente'): ?>
                       <button type="submit" name="cambiar_estado" value="rechazado" class="btn-delete">Rechazar</button>
                     <?php endif; ?>

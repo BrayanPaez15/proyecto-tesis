@@ -919,3 +919,14 @@ header.menu-abierto .header-actions { display: flex; }
 
 /* con el menu abierto, el encabezado queda por encima del manual y de los botones flotantes */
 header.menu-abierto { z-index: 3500; }
+
+/* Nombre completo y etiqueta de prototipo junto a las siglas SIRAD */
+header .logo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+header .logo-nombre { font-size: 13px; font-weight: 400; opacity: 0.92; white-space: nowrap; }
+.etiqueta-prototipo { display: inline-block; padding: 2px 9px; border: 1px solid rgba(255, 255, 255, 0.7); border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; line-height: 1.3; }
+.etiqueta-prototipo.etiqueta-oscura { margin-left: 6px; border-color: #2563eb; color: #1d4ed8; background: #eff6ff; vertical-align: middle; }
+@media (max-width: 1150px) { header .logo-nombre { display: none; } }
+@media (max-width: 640px) {
+    header .logo { flex-direction: column; align-items: flex-start; gap: 3px; line-height: 1.1; }
+    header .logo .etiqueta-prototipo { padding: 1px 8px; }
+}
