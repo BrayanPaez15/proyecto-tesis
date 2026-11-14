@@ -94,6 +94,7 @@ if ($_POST && isset($_POST['importar'])) {
 
                 $importados = 0;
                 $omitidos = 0;
+                $invalidos = 0;
                 $filasConDatos = 0;
                 $limiteSuperado = false;
                 // todo el archivo se importa en una sola transaccion: si pasa el limite de filas no se guarda nada
@@ -115,6 +116,13 @@ if ($_POST && isset($_POST['importar'])) {
                     foreach ($columnasDestino as $clave) {
                         $indiceOrigen = array_search($clave, $mapaColumnas, true);
                         $valores[$clave] = $indiceOrigen !== false ? trim((string) ($fila[$indiceOrigen] ?? '')) : '';
+                    }
+
+                    // mismas reglas que el formulario: el nombre es obligatorio y el correo, si viene, debe tener formato valido
+                    if ((array_key_exists('nombre', $valores) && $valores['nombre'] === '')
+                        || (($valores['correo'] ?? '') !== '' && !filter_var($valores['correo'], FILTER_VALIDATE_EMAIL))) {
+                        $invalidos++;
+                        continue;
                     }
 
                     $duplicado = false;
@@ -153,7 +161,7 @@ if ($_POST && isset($_POST['importar'])) {
                 if ($limiteSuperado) {
                     $error = "El archivo tiene más de " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas con datos. No se importó ningún registro: divídelo en archivos de hasta " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas e impórtalos uno por uno.";
                 } else {
-                    $resumen = ['importados' => $importados, 'omitidos' => $omitidos];
+                    $resumen = ['importados' => $importados, 'omitidos' => $omitidos, 'invalidos' => $invalidos];
                 }
             }
         }
@@ -194,6 +202,9 @@ if ($_POST && isset($_POST['importar'])) {
       <p class="auth-success" style="margin-bottom: 16px;">
         Importación completada: <?= (int) $resumen['importados'] ?> registro(s) importado(s),
         <?= (int) $resumen['omitidos'] ?> omitido(s) por duplicado (correo, NIT o cédula ya registrados).
+        <?php if (!empty($resumen['invalidos'])): ?>
+          Además, <?= (int) $resumen['invalidos'] ?> fila(s) se rechazaron por datos no válidos (sin nombre o con el correo mal escrito).
+        <?php endif; ?>
       </p>
     <?php endif; ?>
 
