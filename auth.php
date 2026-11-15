@@ -21,7 +21,7 @@ if (!isset($_SESSION['usuario_id'])) {
 }
 
 include_once __DIR__ . '/conexion.php';
-$stmtSesion = $conn->prepare("SELECT nombre, rol, estado, puede_importar, permisos_modulos FROM usuarios WHERE id_usuario = ?");
+$stmtSesion = $conn->prepare("SELECT nombre, rol, estado, puede_importar, permisos_modulos, politica_version FROM usuarios WHERE id_usuario = ?");
 $idSesion = (int) $_SESSION['usuario_id'];
 $stmtSesion->bind_param("i", $idSesion);
 $stmtSesion->execute();
@@ -34,6 +34,14 @@ if (!$cuentaSesion || $cuentaSesion['estado'] !== 'aprobado') {
     // Rechazada o eliminada: el login explica que debe comunicarse con el administrador.
     $aviso = !$cuentaSesion ? 'eliminada' : ($cuentaSesion['estado'] === 'rechazado' ? 'rechazada' : ($cuentaSesion['estado'] === 'baja' ? 'baja' : ''));
     header("Location: login.php" . ($aviso !== '' ? '?aviso=' . $aviso : ''));
+    exit;
+}
+// Politica de datos: si la version aceptada no es la vigente (por ejemplo, las cuentas anteriores a la 1.1), la
+// persona debe leerla y aceptarla antes de seguir. Quedan libres la pantalla de aceptacion y la baja de la cuenta.
+require_once __DIR__ . '/includes/politica.php';
+if (POLITICA_EXIGIR_ACEPTACION && (string) ($cuentaSesion['politica_version'] ?? '') !== POLITICA_VERSION
+    && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), ['aceptar_politica.php', 'baja.php'], true)) {
+    header("Location: aceptar_politica.php");
     exit;
 }
 $_SESSION['usuario_nombre'] = $cuentaSesion['nombre'];

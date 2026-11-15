@@ -45,6 +45,9 @@ defined('CONTACTO_WHATSAPP') || define('CONTACTO_WHATSAPP', 'https://wa.me/57305
 // Identificacion del responsable del tratamiento que se muestra en politica.php (nombre, NIT, direccion). Vacio = solo se
 // indica «La Fundacion que utiliza SIRAD». Lo completa quien instala el sistema, en config.local.php.
 defined('POLITICA_RESPONSABLE') || define('POLITICA_RESPONSABLE', '');
+// Si es true, quien tenga aceptada una version de la politica distinta de la vigente (includes/politica.php) debe
+// leer y aceptar la vigente al iniciar sesion (aceptar_politica.php) antes de usar el sistema.
+defined('POLITICA_EXIGIR_ACEPTACION') || define('POLITICA_EXIGIR_ACEPTACION', true);
 // Importacion desde Excel o CSV: tamano maximo del archivo en MB y filas maximas por archivo.
 defined('IMPORTAR_MAX_MB') || define('IMPORTAR_MAX_MB', 5);
 defined('IMPORTAR_MAX_FILAS') || define('IMPORTAR_MAX_FILAS', 5000);
