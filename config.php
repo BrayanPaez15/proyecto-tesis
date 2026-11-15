@@ -42,6 +42,9 @@ defined('CONTACTO_TELEFONO') || define('CONTACTO_TELEFONO', '');
 // Enlace de WhatsApp del administrador: es el medio principal que se muestra a quien es rechazado, a quien
 // pierde su cuenta y a quien llega a un limite de solicitudes. Vacio = solo se muestran correo y teléfono.
 defined('CONTACTO_WHATSAPP') || define('CONTACTO_WHATSAPP', 'https://wa.me/573053857835');
+// Identificacion del responsable del tratamiento que se muestra en politica.php (nombre, NIT, direccion). Vacio = solo se
+// indica «La Fundacion que utiliza SIRAD». Lo completa quien instala el sistema, en config.local.php.
+defined('POLITICA_RESPONSABLE') || define('POLITICA_RESPONSABLE', '');
 // Importacion desde Excel o CSV: tamano maximo del archivo en MB y filas maximas por archivo.
 defined('IMPORTAR_MAX_MB') || define('IMPORTAR_MAX_MB', 5);
 defined('IMPORTAR_MAX_FILAS') || define('IMPORTAR_MAX_FILAS', 5000);
