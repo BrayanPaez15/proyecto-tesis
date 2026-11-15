@@ -132,7 +132,7 @@ function ayuda_secciones(): array
               <li>Escriba un registro por fila, desde la fila 2, <b>sin cambiar los encabezados</b> de la fila 1. Guárdelo como Excel (.xlsx) o como CSV.</li>
               <li>Elija el módulo, seleccione el archivo y haga clic en <b>Importar</b>.</li>
             </ol>
-            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Si llega al límite, la página le dice a qué hora puede volver a importar y desactiva el botón hasta entonces. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
+            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Las filas repetidas, sin nombre o con el correo mal escrito no se importan, y el resultado indica cuántas fueron. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Si llega al límite, la página le dice a qué hora puede volver a importar y desactiva el botón hasta entonces. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
     }
 
     if ($admin) {
@@ -151,7 +151,7 @@ function ayuda_secciones(): array
             </ol>"];
 
         $todas['alertas'] = ['Alertas', "
-            <p>En <b>Alertas</b> aparecen las cuentas nuevas (con su motivo), los intentos de ingreso de cuentas sin aprobar y los inicios de sesión. El número rojo junto a «Alertas» son las que no ha leído. Las solicitudes pendientes se pueden aprobar o rechazar desde ahí, y <b>Marcar todas como leídas</b> limpia el contador.</p>"];
+            <p>En <b>Alertas</b> aparecen las cuentas nuevas (con su motivo), los intentos de ingreso de cuentas sin aprobar, los inicios de sesión y las bajas de cuenta. El número rojo junto a «Alertas» son las que no ha leído. Las solicitudes pendientes se pueden aprobar o rechazar desde ahí, y <b>Marcar todas como leídas</b> limpia el contador.</p>"];
 
         $todas['reportes'] = ['Reportes', "
             <p>En <b>Reportes</b> hay estadísticas del sistema: registros por módulo, registros nuevos de los últimos 6 meses, usuarios por rol y etiquetas más usadas.</p>"];
