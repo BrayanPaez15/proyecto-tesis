@@ -23,7 +23,11 @@
           var texto = etiqueta.querySelector('span');
           (texto || etiqueta).appendChild(marca);
         } else if (etiqueta.firstChild && etiqueta.firstChild.nodeType === 3) {
-          etiqueta.insertBefore(marca, etiqueta.firstChild.nextSibling);
+          // el texto y el asterisco van en un mismo elemento, para que no queden en lineas distintas
+          var envoltura = document.createElement('span');
+          etiqueta.insertBefore(envoltura, etiqueta.firstChild);
+          envoltura.appendChild(envoltura.nextSibling);
+          envoltura.appendChild(marca);
         } else {
           etiqueta.insertBefore(marca, control);
         }
