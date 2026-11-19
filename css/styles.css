@@ -937,12 +937,11 @@ header .logo-nombre { font-size: 13px; font-weight: 400; opacity: 0.92; white-sp
 
 /* Filtros por columna en «Ver registros» (includes/paginacion.php) */
 .search-bar { flex-wrap: wrap; }
-.filtros-columnas { flex-basis: 100%; margin-top: 4px; }
-.filtros-columnas > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: #1d4ed8; }
-.filtros-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 12px; margin-top: 8px; }
-.filtros-grid label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; color: #374151; }
-.filtros-grid input { flex: none; width: 100%; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; font-weight: normal; }
-.filtros-ayuda { margin: 6px 0 0; font-size: 12px; color: #6b7280; }
+.filtro-columna { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.filtro-columna select, .filtro-columna input { padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #fff; max-width: 260px; }
+.filtro-columna input { flex: 1; min-width: 190px; }
+.filtro-columna [hidden] { display: none; }
+.filtro-columna select:focus, .filtro-columna input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
 
 /* Tabla de registros compacta: el texto se parte en lineas para que quepa en la pantalla y la primera columna queda fija al desplazarse */
 .tabla-registros table { white-space: normal; }

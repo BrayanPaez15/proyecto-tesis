@@ -36,6 +36,12 @@ function modulo_de_la_pagina(): ?string
     return $clave;
 }
 
+/** La columna del modulo es de tipo Si/No (por ejemplo «Filbo» en Artistas). */
+function columna_si_no(string $clave, string $col): bool
+{
+    return in_array($col, modulo_def($clave)['booleanos'] ?? [], true);
+}
+
 /**
  * Filtros por columna pedidos en la URL (f_columna=texto). Solo se aceptan columnas del catalogo del modulo,
  * con un maximo de 100 caracteres; los vacios se ignoran. Son parametros de texto, no arreglos.
@@ -45,14 +51,23 @@ function filtros_columnas(?string $clave): array
     if ($clave === null) {
         return [];
     }
+    $def = modulo_def($clave);
     $filtros = [];
-    foreach (array_keys(modulo_def($clave)['columnas']) as $col) {
+    foreach (array_keys($def['columnas']) as $col) {
         $valor = $_GET['f_' . $col] ?? null;
         if (is_string($valor)) {
             $valor = mb_substr(trim($valor), 0, 100);
             if ($valor !== '') {
                 $filtros[$col] = $valor;
             }
+        }
+    }
+    // el formulario envia una columna elegida en la lista (campo) y lo buscado (valor, o valor_sino en las columnas Si/No)
+    $campo = $_GET['campo'] ?? null;
+    if (is_string($campo) && isset($def['columnas'][$campo])) {
+        $valor = $_GET[columna_si_no($clave, $campo) ? 'valor_sino' : 'valor'] ?? null;
+        if (is_string($valor) && mb_substr(trim($valor), 0, 100) !== '') {
+            $filtros[$campo] = mb_substr(trim($valor), 0, 100);
         }
     }
     return $filtros;
@@ -103,9 +118,15 @@ function consulta_paginada(mysqli $conn, string $clave, string $q, int $pagina):
     }
     // filtros por columna: cada uno restringe aun mas el resultado (Y)
     foreach (filtros_columnas($clave) as $col => $texto) {
-        $where[] = "`$col` LIKE ?";
         $tipos .= 's';
-        $params[] = '%' . addcslashes($texto, '%_\\') . '%';
+        if (columna_si_no($clave, $col)) {
+            // Si/No: coincidencia exacta (no un «contiene»)
+            $where[] = "`$col` = ?";
+            $params[] = $texto;
+        } else {
+            $where[] = "`$col` LIKE ?";
+            $params[] = '%' . addcslashes($texto, '%_\\') . '%';
+        }
     }
     if ($where) {
         $donde = ' WHERE ' . implode(' AND ', $where);
@@ -143,23 +164,44 @@ function render_busqueda_servidor(string $q, int $total): void
     ?>
       <form class="search-bar" method="GET">
         <input type="search" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="Buscar en el módulo..." maxlength="100">
+        <?php if ($clave !== null):
+            $columnas = modulo_def($clave)['columnas'];
+            $campoActivo = $filtros ? array_key_first($filtros) : '';
+            $valorActivo = $filtros ? $filtros[$campoActivo] : '';
+            $sino = $campoActivo !== '' && columna_si_no($clave, $campoActivo);
+            ?>
+          <span class="filtro-columna">
+            <select name="campo" id="filtro-campo" aria-label="Columna por la que filtrar">
+              <option value="">Filtrar por columna…</option>
+              <?php foreach ($columnas as $col => $etiqueta): ?>
+                <option value="<?= htmlspecialchars($col) ?>" data-sino="<?= columna_si_no($clave, $col) ? '1' : '0' ?>"<?= $col === $campoActivo ? ' selected' : '' ?>><?= htmlspecialchars($etiqueta) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <input type="search" name="valor" id="filtro-valor" value="<?= $sino ? '' : htmlspecialchars($valorActivo) ?>" maxlength="100" placeholder="Lo que busca en esa columna"<?= $sino ? ' hidden disabled' : '' ?>>
+            <select name="valor_sino" id="filtro-sino" aria-label="Sí o No"<?= $sino ? '' : ' hidden disabled' ?>>
+              <option value="Sí"<?= $valorActivo === 'Sí' ? ' selected' : '' ?>>Sí</option>
+              <option value="No"<?= $valorActivo === 'No' ? ' selected' : '' ?>>No</option>
+            </select>
+          </span>
+        <?php endif; ?>
         <button type="submit">Buscar</button>
         <?php if ($activa): ?>
           <a href="?" class="btn-edit">Quitar filtro</a>
         <?php endif; ?>
         <span class="search-count"><?= $total ?> registro<?= $total === 1 ? '' : 's' ?><?= $activa ? ' encontrado' . ($total === 1 ? '' : 's') : '' ?></span>
         <?php if ($clave !== null): ?>
-          <details class="filtros-columnas"<?= $filtros ? ' open' : '' ?>>
-            <summary>Filtrar por columna<?= $filtros ? ' (' . count($filtros) . ' activo' . (count($filtros) === 1 ? '' : 's') . ')' : '' ?></summary>
-            <div class="filtros-grid">
-              <?php foreach (modulo_def($clave)['columnas'] as $col => $etiqueta): ?>
-                <label><?= htmlspecialchars($etiqueta) ?>
-                  <input type="search" name="f_<?= htmlspecialchars($col) ?>" value="<?= htmlspecialchars($filtros[$col] ?? '') ?>" maxlength="100" placeholder="Contiene…">
-                </label>
-              <?php endforeach; ?>
-            </div>
-            <p class="filtros-ayuda">Los filtros se combinan: se muestran solo los registros que cumplan todos. Pulsa «Buscar» para aplicarlos.</p>
-          </details>
+          <script>
+            (function () {
+              var campo = document.getElementById('filtro-campo'), txt = document.getElementById('filtro-valor'), sino = document.getElementById('filtro-sino');
+              if (!campo || !txt || !sino) return;
+              function ajustar() {
+                var esSino = campo.options[campo.selectedIndex].getAttribute('data-sino') === '1';
+                txt.hidden = txt.disabled = esSino;
+                sino.hidden = sino.disabled = !esSino;
+              }
+              campo.addEventListener('change', ajustar); ajustar();
+            })();
+          </script>
         <?php endif; ?>
       </form>
     <?php

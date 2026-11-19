@@ -116,7 +116,7 @@ function ayuda_secciones(): array
           <li>Haga clic en <b>Ver registros</b> (en la tarjeta del módulo o en la pestaña del módulo).</li>
           <li>La tabla muestra <b>50 registros por página</b>, los más recientes primero. Abajo están <b>Anterior</b>, <b>Siguiente</b> y el total de páginas y de registros.</li>
           <li>Para buscar, escriba en «Buscar en el módulo…» y haga clic en <b>Buscar</b>: se busca en todas las columnas y se indica cuántos registros se encontraron. <b>Quitar filtro</b> vuelve a mostrar todos.</li>
-          <li>Para acotar más, abra <b>Filtrar por columna</b>, escriba un texto en las columnas que quiera (por ejemplo, el apellido o la organización) y haga clic en <b>Buscar</b>: se muestran solo los registros que cumplan todos los filtros. Al cambiar de página se conservan.</li>
+          <li>Para acotar por una columna, elija en la lista <b>«Filtrar por columna…»</b> la que necesite (por ejemplo, Organización o Correo), escriba a su lado lo que busca y haga clic en <b>Buscar</b>. En las columnas de tipo Sí/No (como Filbo) la lista ofrece las opciones <b>Sí</b> y <b>No</b>. Puede combinarlo con el buscador general, y al cambiar de página se conserva.</li>
           <li>En pantallas pequeñas la tabla se desplaza hacia los lados y la primera columna queda fija para no perder de vista a quién corresponde cada fila.</li>
           <li>Los administradores ven además los botones <b>Editar</b> y <b>Borrar</b> de cada fila (el borrado pide confirmación y no se puede deshacer).</li>
         </ol>"];
@@ -222,7 +222,7 @@ function ayuda_chat_preguntas(): array
             ['importar', 'excel', 'csv', 'plantilla', 'cargar', 'archivo', 'subir', 'xlsx', 'masiva', 'fila', 'filas'],
             (function_exists('puede_importar') && puede_importar()) ? ['Ir a Importar', 'importar.php'] : null],
         ['¿Cómo encuentro un registro?',
-            'En «Ver registros» del módulo escriba en el buscador o abra «Filtrar por columna» para filtrar por apellido, organización u otro campo; los filtros se combinan. Para buscar en todos los módulos use «Buscar» del menú superior.',
+            'En «Ver registros» del módulo escriba en el buscador o elija en la lista «Filtrar por columna…» el campo (apellido, organización, correo…) y escriba a su lado lo que busca. Para buscar en todos los módulos use «Buscar» del menú superior.',
             ['buscar', 'busqueda', 'encontrar', 'filtrar', 'filtro', 'apellido', 'organizacion', 'perfil', 'lista', 'ver', 'consultar'], ['Ir a Buscar', 'buscar.php']],
         ['No veo el botón «Registrar» o «Ver registros»',
             'Su cuenta no tiene ese permiso en el módulo. Pídaselo a un administrador (Usuarios → Editar).',
