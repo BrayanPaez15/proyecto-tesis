@@ -272,7 +272,7 @@ if ($_POST && isset($_POST['importar'])) {
       <?php endif; ?>
     <?php endif; ?>
 
-    <p class="pending-notice" style="margin-bottom: 16px;">¿Primera vez? <a id="plantilla-directa" href="#plantillas">Descarga aquí la plantilla</a> del módulo que vas a cargar: así el archivo queda con las columnas que el sistema espera y los datos entran bien.</p>
+    <p class="pending-notice" id="aviso-plantilla" style="margin-bottom: 16px;">¿Primera vez? <a id="plantilla-directa" href="#plantillas">Descarga aquí la plantilla</a> del módulo que vas a cargar: así el archivo queda con las columnas que el sistema espera y los datos entran bien.</p>
 
     <form class="form-card" method="POST" enctype="multipart/form-data">
       <?php csrf_field(); ?>
@@ -313,6 +313,15 @@ if ($_POST && isset($_POST['importar'])) {
         else { enlace.href = '#plantillas'; enlace.textContent = 'Descarga aquí la plantilla'; }
       }
       sel.addEventListener('change', actualizar); actualizar();
+    })();
+    // el aviso «¿Primera vez?» se quita cuando la persona ya fue a por la plantilla (enlace del aviso o botones de la tabla)
+    (function () {
+      var aviso = document.getElementById('aviso-plantilla');
+      if (!aviso) return;
+      function quitar() { aviso.style.display = 'none'; }
+      Array.prototype.forEach.call(document.querySelectorAll('#plantilla-directa, #plantillas a[href*="plantilla="]'), function (a) {
+        a.addEventListener('click', quitar);
+      });
     })();
   </script>
 </body>
