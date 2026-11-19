@@ -20,6 +20,7 @@ function render_header(bool $mostrarVolver = true): void
     $rolLabel = is_admin() ? 'Administrador' : 'Usuario';
     $sinLeer = is_admin() ? alertas_pendientes($conn) : 0;
     ?>
+  <script src="js/obligatorios.js?v=<?= @filemtime(__DIR__ . '/../js/obligatorios.js') ?>" defer></script>
   <header>
     <div class="logo"><span class="logo-sigla">SIRAD</span> <span class="logo-nombre">Sistema de Registro y Administración de Directorios</span> <span class="etiqueta-prototipo">Prototipo</span></div>
     <div class="header-usuario">

@@ -52,15 +52,15 @@ $etiquetasPorRegistro = etiquetas_por_registro($conn, 'practicantes', $idsPagina
 
     <?php render_page_actions('practicantes', 'registros'); ?>
 
-    <?php if ($total === 0 && $q === ''): ?>
+    <?php if ($total === 0 && !hay_busqueda($q)): ?>
       <p class="empty-state">Aún no hay registros en este módulo.</p>
     <?php else: ?>
       <?php render_busqueda_servidor($q, $total); ?>
       <?php if ($total === 0): ?>
-        <p class="empty-state">No se encontraron registros para «<?= htmlspecialchars($q) ?>».</p>
+        <p class="empty-state">No se encontraron registros <?= descripcion_busqueda($q) ?>.</p>
       <?php endif; ?>
 
-      <div class="table-card">
+      <div class="table-card tabla-registros">
         <table>
           <tr>
             <th>Nombre</th>

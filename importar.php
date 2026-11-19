@@ -39,8 +39,29 @@ if (isset($_GET['plantilla']) && is_string($_GET['plantilla']) && isset($modulos
     exit;
 }
 
+// Reporte de las filas con problema de la ultima importacion (se guarda en la sesion de quien importo).
+if (isset($_GET['reporte']) && !empty($_SESSION['importar_reporte']['filas'])) {
+    $rep = $_SESSION['importar_reporte'];
+    $celda = function (string $v): string {
+        // un dato que empiece por = + - @ no se ejecuta como formula al abrir el CSV en Excel
+        if ($v !== '' && strpos('=+-@', $v[0]) !== false) {
+            $v = "'" . $v;
+        }
+        return '"' . str_replace('"', '""', $v) . '"';
+    };
+    header("Content-Type: text/csv; charset=utf-8");
+    header("Content-Disposition: attachment; filename=\"filas_con_problema_{$rep['clave']}.csv\"");
+    echo "\xEF\xBB\xBF" . "sep=;\r\n";
+    echo implode(";", array_map($celda, ['Fila del archivo', 'Resultado', 'Motivo', 'Dato de la fila'])) . "\r\n";
+    foreach ($rep['filas'] as $f) {
+        echo implode(";", array_map($celda, [(string) $f['fila'], $f['resultado'], $f['motivo'], $f['dato']])) . "\r\n";
+    }
+    exit;
+}
+
 $moduloSel = $_POST['modulo'] ?? '';
 $resumen = null;
+$detalles = [];
 $error = "";
 
 if ($_POST && isset($_POST['importar'])) {
@@ -96,6 +117,7 @@ if ($_POST && isset($_POST['importar'])) {
                 $omitidos = 0;
                 $invalidos = 0;
                 $filasConDatos = 0;
+                $numeroFila = 1; // la fila 1 es el encabezado
                 $limiteSuperado = false;
                 // todo el archivo se importa en una sola transaccion: si pasa el limite de filas no se guarda nada
                 tx_iniciar($conn);
@@ -103,6 +125,7 @@ if ($_POST && isset($_POST['importar'])) {
                 while ($filasArchivo->valid()) {
                     $fila = $filasArchivo->current();
                     $filasArchivo->next();
+                    $numeroFila++;
                     $noVacia = array_filter($fila, fn($v) => trim((string) $v) !== '');
                     if (count($noVacia) === 0) {
                         continue;
@@ -118,22 +141,41 @@ if ($_POST && isset($_POST['importar'])) {
                         $valores[$clave] = $indiceOrigen !== false ? trim((string) ($fila[$indiceOrigen] ?? '')) : '';
                     }
 
+                    // dato que identifica la fila en el reporte: el primero que venga con valor
+                    $datoFila = '';
+                    foreach ($valores as $v) {
+                        if ($v !== '') {
+                            $datoFila = mb_substr($v, 0, 80);
+                            break;
+                        }
+                    }
+
                     // mismas reglas que el formulario: el nombre es obligatorio y el correo, si viene, debe tener formato valido
-                    if ((array_key_exists('nombre', $valores) && $valores['nombre'] === '')
-                        || (($valores['correo'] ?? '') !== '' && !filter_var($valores['correo'], FILTER_VALIDATE_EMAIL))) {
+                    $motivos = [];
+                    if (array_key_exists('nombre', $valores) && $valores['nombre'] === '') {
+                        $motivos[] = 'Falta el nombre';
+                    }
+                    if (($valores['correo'] ?? '') !== '' && !filter_var($valores['correo'], FILTER_VALIDATE_EMAIL)) {
+                        $motivos[] = 'El correo «' . mb_substr($valores['correo'], 0, 60) . '» no es válido';
+                    }
+                    if ($motivos) {
                         $invalidos++;
+                        $detalles[] = ['fila' => $numeroFila, 'resultado' => 'Rechazada', 'motivo' => implode('; ', $motivos), 'dato' => $datoFila];
                         continue;
                     }
 
                     $duplicado = false;
+                    $motivoDuplicado = '';
                     foreach ($unicas as $u) {
                         if ($valores[$u] !== '' && existe_valor_unico($conn, $moduloSel, $u, $valores[$u])) {
                             $duplicado = true;
+                            $motivoDuplicado = 'Ya existe un registro con ' . etiqueta_unica($u) . ' («' . mb_substr($valores[$u], 0, 60) . '») en este módulo, en el sistema o antes en el archivo';
                             break;
                         }
                     }
                     if ($duplicado) {
                         $omitidos++;
+                        $detalles[] = ['fila' => $numeroFila, 'resultado' => 'Omitida', 'motivo' => $motivoDuplicado, 'dato' => $datoFila];
                         continue;
                     }
 
@@ -145,6 +187,7 @@ if ($_POST && isset($_POST['importar'])) {
                             throw $e;
                         }
                         $omitidos++;
+                        $detalles[] = ['fila' => $numeroFila, 'resultado' => 'Omitida', 'motivo' => 'Ya existe un registro con ese correo, NIT o cédula en este módulo', 'dato' => $datoFila];
                     }
                 }
 
@@ -162,6 +205,7 @@ if ($_POST && isset($_POST['importar'])) {
                     $error = "El archivo tiene más de " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas con datos. No se importó ningún registro: divídelo en archivos de hasta " . number_format(IMPORTAR_MAX_FILAS, 0, ',', '.') . " filas e impórtalos uno por uno.";
                 } else {
                     $resumen = ['importados' => $importados, 'omitidos' => $omitidos, 'invalidos' => $invalidos];
+                    $_SESSION['importar_reporte'] = $detalles ? ['clave' => $moduloSel, 'modulo' => $m['titulo'], 'archivo' => mb_substr((string) ($_FILES['archivo']['name'] ?? ''), 0, 120), 'filas' => $detalles] : [];
                 }
             }
         }
@@ -206,7 +250,29 @@ if ($_POST && isset($_POST['importar'])) {
           Además, <?= (int) $resumen['invalidos'] ?> fila(s) se rechazaron por datos no válidos (sin nombre o con el correo mal escrito).
         <?php endif; ?>
       </p>
+      <?php if ($detalles): ?>
+        <div class="table-card" style="margin-bottom: 16px;">
+          <p style="margin: 12px 14px 4px; font-weight: 600;">Filas con problema (<?= count($detalles) ?>): estas filas no se importaron.</p>
+          <table>
+            <tr><th>Fila del archivo</th><th>Resultado</th><th>Qué pasó</th><th>Dato de la fila</th></tr>
+            <?php foreach (array_slice($detalles, 0, 100) as $d): ?>
+              <tr>
+                <td><?= (int) $d['fila'] ?></td>
+                <td><?= htmlspecialchars($d['resultado']) ?></td>
+                <td style="white-space: normal;"><?= htmlspecialchars($d['motivo']) ?></td>
+                <td><?= htmlspecialchars($d['dato']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </table>
+          <p style="margin: 8px 14px 12px; font-size: 13px; color: #6b7280;">
+            <?= count($detalles) > 100 ? 'Se muestran las primeras 100. ' : '' ?>
+            Corrige esas filas en tu archivo y vuelve a importar solo ese archivo corregido. <a href="importar.php?reporte=1" class="btn-edit">Descargar el reporte completo (CSV)</a>
+          </p>
+        </div>
+      <?php endif; ?>
     <?php endif; ?>
+
+    <p class="pending-notice" style="margin-bottom: 16px;">¿Primera vez? <a id="plantilla-directa" href="#plantillas">Descarga aquí la plantilla</a> del módulo que vas a cargar: así el archivo queda con las columnas que el sistema espera y los datos entran bien.</p>
 
     <form class="form-card" method="POST" enctype="multipart/form-data">
       <?php csrf_field(); ?>
@@ -222,7 +288,7 @@ if ($_POST && isset($_POST['importar'])) {
       <button type="submit" name="importar" value="1"<?= $cupo['agotado'] ? ' disabled title="Llegaste al límite de importaciones por hora"' : '' ?>>Importar</button>
     </form>
 
-    <div class="table-card">
+    <div class="table-card" id="plantillas">
       <table>
         <tr>
           <th>Módulo</th>
@@ -238,6 +304,17 @@ if ($_POST && isset($_POST['importar'])) {
     </div>
   </main>
 
+  <script>
+    (function () {
+      var sel = document.querySelector('select[name="modulo"]'), enlace = document.getElementById('plantilla-directa');
+      if (!sel || !enlace) return;
+      function actualizar() {
+        if (sel.value) { enlace.href = 'importar.php?plantilla=' + encodeURIComponent(sel.value); enlace.textContent = 'Descarga aquí la plantilla de ' + sel.options[sel.selectedIndex].text; }
+        else { enlace.href = '#plantillas'; enlace.textContent = 'Descarga aquí la plantilla'; }
+      }
+      sel.addEventListener('change', actualizar); actualizar();
+    })();
+  </script>
 </body>
 
 </html>

@@ -10,6 +10,12 @@
  * administracion solo para administradores (y la de importar para quien tiene ese permiso).
  * Los textos son los mismos del manual de usuario en Word. Estilos en css/styles.css y
  * comportamiento en js/ayuda.js.
+ *
+ * El boton verde de WhatsApp abre un asistente de ayuda: cuatro preguntas frecuentes con respuesta
+ * fija (ayuda_chat_preguntas) y un cuadro para escribir la duda, que se compara con palabras clave
+ * en el navegador. No hay servicio externo ni se guarda lo escrito. Si no tiene respuesta, o la
+ * persona prefiere hablar con alguien, el asistente ofrece abrir WhatsApp con la duda ya escrita.
+ * Sin CONTACTO_WHATSAPP no hay boton ni asistente.
  */
 
 /** Seccion del manual que corresponde al archivo actual. */
@@ -57,7 +63,7 @@ function ayuda_secciones(): array
           <li>Lea la política de tratamiento de datos personales y marque la casilla de aceptación; sin aceptarla no se crea la cuenta.</li>
           <li>Haga clic en <b>Solicitar cuenta</b>. Verá el aviso «Solicitud enviada» y deberá esperar la aprobación.</li>
         </ol>
-        <p class=\"ayuda-nota\">Si el correo ya está registrado, use «Iniciar sesión». Por seguridad se aceptan hasta $porIp solicitudes por hora desde una misma conexión; si ve un aviso de límite o de rechazo, escriba al administrador por el enlace de WhatsApp que aparece en el mismo aviso (también está en el botón verde «WhatsApp», junto al «Manual»).</p>"];
+        <p class=\"ayuda-nota\">Si el correo ya está registrado, use «Iniciar sesión». Por seguridad se aceptan hasta $porIp solicitudes por hora desde una misma conexión; si ve un aviso de límite o de rechazo, escriba al administrador por el enlace de WhatsApp que aparece en el mismo aviso (también está en el botón verde de ayuda, junto al «Manual»: abre un asistente con respuestas a las dudas más comunes y la opción de hablar con una persona del programa por WhatsApp).</p>"];
 
     $todas['ingresar'] = ['Iniciar y cerrar sesión', "
         <ol>
@@ -99,7 +105,7 @@ function ayuda_secciones(): array
         <p>Todos los módulos funcionan igual; cambian solo los campos del formulario.</p>
         <ol>
           <li>En el panel haga clic en <b>Ingresar</b> en el módulo que necesite.</li>
-          <li>Complete los campos (nombre, teléfono, correo y los demás del módulo).</li>
+          <li>Complete los campos (nombre, teléfono, correo y los demás del módulo). Los obligatorios llevan un asterisco rojo (<b>*</b>); sin ellos no se guarda el registro.</li>
           <li>En Artistas y Talleristas, use <b>+ Agregar horario</b> para indicar la disponibilidad por día y hora (Disponible u Ocupado); los horarios de un mismo día no pueden cruzarse.</li>
           <li>Haga clic en <b>Guardar</b>. Verá el aviso «Registro guardado» o pasará a la lista de registros.</li>
         </ol>
@@ -110,6 +116,8 @@ function ayuda_secciones(): array
           <li>Haga clic en <b>Ver registros</b> (en la tarjeta del módulo o en la pestaña del módulo).</li>
           <li>La tabla muestra <b>50 registros por página</b>, los más recientes primero. Abajo están <b>Anterior</b>, <b>Siguiente</b> y el total de páginas y de registros.</li>
           <li>Para buscar, escriba en «Buscar en el módulo…» y haga clic en <b>Buscar</b>: se busca en todas las columnas y se indica cuántos registros se encontraron. <b>Quitar filtro</b> vuelve a mostrar todos.</li>
+          <li>Para acotar más, abra <b>Filtrar por columna</b>, escriba un texto en las columnas que quiera (por ejemplo, el apellido o la organización) y haga clic en <b>Buscar</b>: se muestran solo los registros que cumplan todos los filtros. Al cambiar de página se conservan.</li>
+          <li>En pantallas pequeñas la tabla se desplaza hacia los lados y la primera columna queda fija para no perder de vista a quién corresponde cada fila.</li>
           <li>Los administradores ven además los botones <b>Editar</b> y <b>Borrar</b> de cada fila (el borrado pide confirmación y no se puede deshacer).</li>
         </ol>"];
 
@@ -128,11 +136,11 @@ function ayuda_secciones(): array
             <p>Si ya tiene los datos en una hoja de cálculo, puede cargarlos de una vez.</p>
             <ol>
               <li>Haga clic en <b>Importar</b> (menú superior).</li>
-              <li>Descargue la <b>plantilla (Excel)</b> del módulo: es un libro con una columna por cada campo.</li>
+              <li>Descargue la <b>plantilla (Excel)</b> del módulo (enlace «Descarga aquí la plantilla» en la parte superior de la página): es un libro con una columna por cada campo.</li>
               <li>Escriba un registro por fila, desde la fila 2, <b>sin cambiar los encabezados</b> de la fila 1. Guárdelo como Excel (.xlsx) o como CSV.</li>
               <li>Elija el módulo, seleccione el archivo y haga clic en <b>Importar</b>.</li>
             </ol>
-            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Las filas repetidas, sin nombre o con el correo mal escrito no se importan, y el resultado indica cuántas fueron. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Si llega al límite, la página le dice a qué hora puede volver a importar y desactiva el botón hasta entonces. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
+            <p class=\"ayuda-nota\">Cada archivo puede pesar hasta <b>$mb MB</b> y tener hasta <b>$filas filas</b>; si lo supera, no se importa nada y debe dividirlo. Las filas repetidas, sin nombre o con el correo mal escrito no se importan: el resultado indica cuántas fueron y una tabla («Filas con problema») dice el número de fila del archivo y el motivo de cada una, con un botón para descargar ese reporte completo en CSV; corrija esas filas y vuelva a importar solo ese archivo. Cada usuario puede importar hasta <b>" . (defined('IMPORTAR_MAX_POR_HORA') ? (int) IMPORTAR_MAX_POR_HORA : 5) . " archivos por hora</b>. Si llega al límite, la página le dice a qué hora puede volver a importar y desactiva el botón hasta entonces. Los registros repetidos (mismo correo, NIT o cédula) se omiten y el resumen le dice cuántos se importaron y cuántos se omitieron. Solo puede importar a módulos donde tiene permiso de registrar.</p>"];
     }
 
     if ($admin) {
@@ -179,6 +187,53 @@ function ayuda_secciones(): array
     return $salida;
 }
 
+/**
+ * Preguntas frecuentes del asistente: [pregunta, respuesta, palabras clave, enlace opcional [texto, url]].
+ * Sin sesion se ofrecen las de acceso; con sesion, las de uso. Las palabras clave se comparan sin tildes.
+ */
+function ayuda_chat_preguntas(): array
+{
+    $sesion = isset($_SESSION['usuario_id']);
+    $porIp = defined('SOLICITUDES_MAX_POR_IP') ? (int) SOLICITUDES_MAX_POR_IP : 3;
+    $mb = defined('IMPORTAR_MAX_MB') ? (int) IMPORTAR_MAX_MB : 5;
+    $datos = ['¿Qué pasa con mis datos personales?',
+        'El sistema trata los datos personales según la política de tratamiento de datos (Ley 1581 de 2012): solo para el directorio de la Fundación y con su autorización. Puede consultar, corregir o pedir la baja de su cuenta; la política explica cómo.',
+        ['datos', 'personales', 'privacidad', 'politica', 'habeas', 'baja', 'retirar', 'borrar', 'eliminar', 'autorizacion'], ['Leer la política de datos', 'politica.php']];
+    if (!$sesion) {
+        return [
+            ['¿Puedo registrarme si soy artista independiente?',
+                'Puede solicitar una cuenta como cualquier persona: en «Crear usuario» cuente quién es y para qué necesita acceso. Un administrador de la Fundación la revisa y decide si la aprueba y qué permisos le da. Mientras tanto la cuenta queda pendiente. Si lo que quiere es que le incluyan en el directorio como artista, escríbale a una persona del programa.',
+                ['independiente', 'artista', 'registrarme', 'registrar', 'inscribir', 'participar', 'puedo', 'quien'], null],
+            ['¿Cómo solicito una cuenta?',
+                "En la pantalla de inicio de sesión pulse «Crear usuario», escriba su nombre y correo, explique para qué necesita acceso, elija el rol que necesita, escriba una contraseña segura y una pregunta de seguridad, resuelva la suma de verificación y acepte la política de datos. Se aceptan hasta $porIp solicitudes por hora desde una misma conexión.",
+                ['cuenta', 'solicitar', 'solicito', 'crear', 'usuario', 'registro', 'inscripcion', 'acceso'], null],
+            ['Creé mi cuenta y no puedo entrar',
+                'Las cuentas nuevas quedan pendientes hasta que un administrador las aprueba; hasta entonces no se puede iniciar sesión. Si el aviso dice que fue rechazada, escriba a la persona del programa desde el botón de WhatsApp.',
+                ['entrar', 'ingresar', 'sesion', 'pendiente', 'aprobar', 'aprobada', 'aprobacion', 'rechazada', 'bloqueada', 'iniciar'], null],
+            ['Olvidé mi contraseña',
+                'En el inicio de sesión pulse «Recuperarla», escriba su correo y responda la pregunta de seguridad que eligió al crear la cuenta; después escriba la nueva contraseña dos veces.',
+                ['contrasena', 'clave', 'olvide', 'recuperar', 'restablecer', 'password'], null],
+            $datos,
+        ];
+    }
+    return [
+        ['¿Cómo importo datos desde Excel?',
+            "Entre a «Importar» (menú superior), descargue la plantilla del módulo, escriba un registro por fila sin cambiar los encabezados y súbala. Cada archivo puede pesar hasta $mb MB. Si alguna fila no se importa, la pantalla dice cuál fila y por qué, y puede descargar ese reporte.",
+            ['importar', 'excel', 'csv', 'plantilla', 'cargar', 'archivo', 'subir', 'xlsx', 'masiva', 'fila', 'filas'],
+            (function_exists('puede_importar') && puede_importar()) ? ['Ir a Importar', 'importar.php'] : null],
+        ['¿Cómo encuentro un registro?',
+            'En «Ver registros» del módulo escriba en el buscador o abra «Filtrar por columna» para filtrar por apellido, organización u otro campo; los filtros se combinan. Para buscar en todos los módulos use «Buscar» del menú superior.',
+            ['buscar', 'busqueda', 'encontrar', 'filtrar', 'filtro', 'apellido', 'organizacion', 'perfil', 'lista', 'ver', 'consultar'], ['Ir a Buscar', 'buscar.php']],
+        ['No veo el botón «Registrar» o «Ver registros»',
+            'Su cuenta no tiene ese permiso en el módulo. Pídaselo a un administrador (Usuarios → Editar).',
+            ['permiso', 'boton', 'modulo', 'no veo', 'aparece', 'acceso', 'registrar', 'ingresar'], null],
+        ['Olvidé mi contraseña',
+            'Cierre sesión y, en el inicio de sesión, pulse «Recuperarla»: responderá la pregunta de seguridad que eligió al crear la cuenta y escribirá una nueva. Si tampoco recuerda la respuesta, un administrador puede restablecerla desde Usuarios → Editar.',
+            ['contrasena', 'clave', 'olvide', 'cambiar', 'recuperar', 'password'], null],
+        $datos,
+    ];
+}
+
 function render_ayuda(): void
 {
     if (defined('AYUDA_ACTIVA') && !AYUDA_ACTIVA) {
@@ -192,8 +247,8 @@ function render_ayuda(): void
     ?>
   <div class="ayuda-barra">
     <?php if (trim((string) CONTACTO_WHATSAPP) !== ''): ?>
-    <a class="ayuda-whatsapp" href="<?= htmlspecialchars(trim((string) CONTACTO_WHATSAPP)) ?>" target="_blank" rel="noopener noreferrer" aria-label="Escribir al administrador por WhatsApp">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88zM20.52 3.45A11.8 11.8 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.4z"/></svg><span class="ayuda-texto">WhatsApp</span>
+    <a class="ayuda-whatsapp" id="chat-boton" href="<?= htmlspecialchars(trim((string) CONTACTO_WHATSAPP)) ?>" target="_blank" rel="noopener noreferrer" aria-controls="chat-panel" aria-label="Asistente de ayuda y WhatsApp">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35zM12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88zM20.52 3.45A11.8 11.8 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89 0-3.18-1.24-6.16-3.48-8.4z"/></svg><span class="ayuda-texto">Ayuda y WhatsApp</span>
     </a>
     <?php endif; ?>
     <button type="button" id="ayuda-boton" class="ayuda-boton" aria-controls="ayuda-panel" aria-expanded="false" aria-label="Manual de uso">
@@ -216,6 +271,23 @@ function render_ayuda(): void
       <p class="ayuda-vacio" hidden>No se encontró nada con esa palabra.</p>
     </div>
   </aside>
+  <?php if (trim((string) CONTACTO_WHATSAPP) !== ''): ?>
+  <aside id="chat-panel" class="ayuda-panel chat-panel" role="complementary" aria-label="Asistente de ayuda" hidden
+         data-whatsapp="<?= htmlspecialchars(trim((string) CONTACTO_WHATSAPP)) ?>"
+         data-preguntas="<?= htmlspecialchars(json_encode(ayuda_chat_preguntas(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>">
+    <div class="ayuda-cabecera">
+      <strong>Asistente de ayuda</strong>
+      <button type="button" class="ayuda-cerrar" aria-label="Cerrar el asistente">&times;</button>
+    </div>
+    <div class="chat-mensajes" role="log" aria-live="polite"></div>
+    <div class="chat-opciones"></div>
+    <form class="chat-form" autocomplete="off">
+      <input type="text" class="chat-texto" maxlength="200" placeholder="Escribe tu duda…" aria-label="Escribe tu duda">
+      <button type="submit" class="chat-enviar">Enviar</button>
+    </form>
+    <p class="chat-pie">Respuestas fijas del sistema: no se guarda lo que escribes. Para hablar con una persona, usa el botón de WhatsApp.</p>
+  </aside>
+  <?php endif; ?>
   <script src="js/ayuda.js?v=<?= @filemtime(__DIR__ . '/../js/ayuda.js') ?>" defer></script>
     <?php
 }

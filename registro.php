@@ -134,6 +134,7 @@ $_SESSION['registro_reto'] = (string) ($retoA + $retoB);
     <title>Crear usuario - SIRAD</title>
     <link rel="stylesheet" href="css/styles.css?v=<?= @filemtime(__DIR__ . '/css/styles.css') ?>">
   <script src="js/animations.js?v=<?= @filemtime(__DIR__ . '/js/animations.js') ?>" defer></script>
+  <script src="js/obligatorios.js?v=<?= @filemtime(__DIR__ . '/js/obligatorios.js') ?>" defer></script>
   <script src="js/mensajes.js?v=<?= @filemtime(__DIR__ . '/js/mensajes.js') ?>" defer></script>
   <script src="js/password.js?v=<?= @filemtime(__DIR__ . '/js/password.js') ?>" defer></script>
 </head>
