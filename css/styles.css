@@ -965,7 +965,7 @@ header .logo-nombre { font-size: 13px; font-weight: 400; opacity: 0.92; white-sp
 .chat-mas { margin-top: 8px !important; padding-top: 6px; border-top: 1px dashed #e5e7eb; font-size: 13px; color: #6b7280; }
 .chat-wa { display: inline-block; margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #25d366; color: #fff !important; font-weight: 700; font-size: 13px; text-decoration: none; }
 .chat-wa:hover { background: #1fb457; }
-.chat-opciones { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-top: 1px solid #e5e7eb; max-height: 168px; overflow-y: auto; }
+.chat-opciones { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-top: 1px solid #e5e7eb; max-height: 230px; overflow-y: auto; }
 .chat-chip { border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; border-radius: 999px; padding: 5px 10px; font-size: 13px; cursor: pointer; text-align: left; }
 .chat-chip:hover { background: #dbeafe; }
 .chat-form { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid #e5e7eb; }

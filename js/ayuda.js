@@ -147,6 +147,16 @@
           b.addEventListener('click', function () { burbuja('yo', p[0]); responder(p, p[0]); });
           opciones.appendChild(b);
         });
+        // ultima pregunta: pasar a una persona del programa
+        var pers = document.createElement('button');
+        pers.type = 'button';
+        pers.className = 'chat-chip';
+        pers.textContent = 'Quiero hablar con una persona del programa';
+        pers.addEventListener('click', function () {
+          burbuja('yo', pers.textContent);
+          burbuja('bot', 'Claro. Pulsa el botón para escribirle por WhatsApp a una persona del programa; el mensaje ya queda escrito.', [linkWhatsapp('')]);
+        });
+        opciones.appendChild(pers);
       };
       var abrirChat = function () {
         if (!panel.hidden) { panel.hidden = true; boton.setAttribute('aria-expanded', 'false'); }
